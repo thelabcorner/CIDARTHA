@@ -1,6 +1,6 @@
 # CIDARTHA
 
-**C**IDR **I**P **D**ata **A**ggregation **R**outine **T**rie with **H**igh-performance **A**rchitecture
+**C**IDR **I**P **D**iscrimination **A**nd **R**esolution **T**rie with **H**ybrid **A**lgorithms
 
 A high-performance, thread-safe IP/CIDR firewall trie data structure for Python. CIDARTHA uses a memory-optimized binary trie to efficiently store and lookup IPv4/IPv6 CIDR blocks with blazing-fast performance.
 
