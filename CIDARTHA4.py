@@ -145,6 +145,8 @@ class CIDARTHA:
             try:
                 network = self._cached_ip_network(input_data)
                 self._insert_cidr(network)
+                # Clear cache after modification
+                self.check.cache_clear()
             except ValueError as e:
                 logger.error(f"Invalid IP or CIDR range: {input_data} - {e}")
                 raise
@@ -207,19 +209,32 @@ class CIDARTHA:
 
         # Handle partial byte
         if rem_bits:
-            b = addr[full_bytes] & masks[rem_bits - 1]
-            children = node._children
-            if children is None:
-                nxt = NodeCtor()
-                node[b] = nxt
-            else:
-                nxt = children.get(b)
-                if nxt is None:
+            # Calculate the range of byte values that match this prefix
+            base_byte = addr[full_bytes] & masks[rem_bits - 1]
+            # Number of bits that are variable in this byte
+            variable_bits = 8 - rem_bits
+            # Number of different values possible
+            num_values = 1 << variable_bits
+            
+            # Create nodes for all byte values in the range
+            for offset in range(num_values):
+                b = base_byte | offset
+                children = node._children
+                if children is None:
                     nxt = NodeCtor()
-                    children[b] = nxt
-            node = nxt
-
-        mark_end(node, network)
+                    node[b] = nxt
+                    children = node._children
+                else:
+                    nxt = children.get(b)
+                    if nxt is None:
+                        nxt = NodeCtor()
+                        children[b] = nxt
+                
+                # Mark this node as end
+                mark_end(nxt, network)
+        else:
+            # Full byte prefix - mark this node as end
+            mark_end(node, network)
 
     @lru_cache(maxsize=4096)
     def check(self, ip) -> bool:
@@ -254,6 +269,8 @@ class CIDARTHA:
 
             if network.prefixlen == 0:
                 self.root = CIDARTHANode()  # Clear directly to avoid deadlock
+                # Clear cache after modification
+                self.check.cache_clear()
                 return
 
             path = self._traverse_path(network.network_address.packed, network.prefixlen)
@@ -271,11 +288,15 @@ class CIDARTHA:
 
             self._remove_end_node(node)
             self._prune_empty_nodes(path)
+            # Clear cache after modification
+            self.check.cache_clear()
 
     def clear(self):
         """Thread-safe clear."""
         with self._lock:
             self.root = CIDARTHANode()
+            # Clear cache after modification
+            self.check.cache_clear()
 
     def _traverse_path(self, address_bytes, prefix_len=None):
         """Return list of (parent_node, byte_to_child) for traversal path."""
