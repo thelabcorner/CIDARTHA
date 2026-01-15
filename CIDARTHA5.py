@@ -144,17 +144,18 @@ class CIDARTHA:
         cache_size = self.config.cache_size
         
         if strategy == "none":
-            # No caching - direct lookup
-            self._check_impl = self._check_no_cache
-            self._normalize_cache = None
+            # No caching - bind check to uncached implementation
+            self.check = self._check_none
             
         elif strategy == "simple":
             # Simple LRU cache - no normalization, accepts any input type
+            # Directly cache the core check method for best performance
             if cache_size > 0:
-                self._check_impl = lru_cache(maxsize=cache_size)(self._check_no_cache)
+                cached_fn = lru_cache(maxsize=cache_size)(self._check_core)
+                self._check_cached = cached_fn
+                self.check = cached_fn
             else:
-                self._check_impl = self._check_no_cache
-            self._normalize_cache = None
+                self.check = self._check_none
             
         elif strategy == "normalized":
             # Normalized caching - always convert to bytes first
@@ -162,8 +163,7 @@ class CIDARTHA:
                 self._check_bytes_cached = lru_cache(maxsize=cache_size)(self._check_bytes_impl)
             else:
                 self._check_bytes_cached = self._check_bytes_impl
-            self._check_impl = self._check_normalized
-            self._normalize_cache = None
+            self.check = self._check_normalized
             
         elif strategy == "dual":
             # Dual cache - separate cache for normalization and lookup
@@ -173,13 +173,23 @@ class CIDARTHA:
             else:
                 self._normalize_cache = _ip_to_bytes
                 self._check_bytes_cached = self._check_bytes_impl
-            self._check_impl = self._check_dual
+            self.check = self._check_dual
         
         else:
             raise ValueError(f"Unknown cache strategy: {strategy}")
 
-    def _check_no_cache(self, ip) -> bool:
-        """Direct check without any caching."""
+    def _check_none(self, ip) -> bool:
+        """No-cache implementation."""
+        ip_bytes = _ip_to_bytes(ip)
+        return self._check_bytes_impl(ip_bytes)
+
+    def _check_none(self, ip) -> bool:
+        """No-cache implementation."""
+        ip_bytes = _ip_to_bytes(ip)
+        return self._check_bytes_impl(ip_bytes)
+
+    def _check_core(self, ip) -> bool:
+        """Core check implementation - converts and looks up."""
         ip_bytes = _ip_to_bytes(ip)
         return self._check_bytes_impl(ip_bytes)
 
@@ -215,13 +225,18 @@ class CIDARTHA:
     def check(self, ip) -> bool:
         """Optimized IP lookup with configurable caching.
         
+        This method is dynamically bound during __init__ to the optimal
+        implementation for the configured caching strategy.
+        
         Args:
             ip: IP address as string, bytes, int, or IPv4Address/IPv6Address object
             
         Returns:
             bool: True if IP matches a stored CIDR block, False otherwise
         """
-        return self._check_impl(ip)
+        # Default implementation - will be replaced by _setup_caching()
+        ip_bytes = _ip_to_bytes(ip)
+        return self._check_bytes_impl(ip_bytes)
 
     def get_cache_info(self) -> Dict:
         """Get cache statistics for the configured caching strategy.
@@ -234,12 +249,14 @@ class CIDARTHA:
             "cache_size": self.config.cache_size,
         }
         
-        if self.config.cache_strategy == "none":
+        strategy = self.config.cache_strategy
+        
+        if strategy == "none":
             result["status"] = "no_cache"
             
-        elif self.config.cache_strategy == "simple":
-            if self.config.cache_size > 0:
-                info = self._check_impl.cache_info()
+        elif strategy == "simple":
+            if self.config.cache_size > 0 and hasattr(self, '_check_cached'):
+                info = self._check_cached.cache_info()
                 result.update({
                     "hits": info.hits,
                     "misses": info.misses,
@@ -249,8 +266,8 @@ class CIDARTHA:
             else:
                 result["status"] = "cache_disabled"
                 
-        elif self.config.cache_strategy == "normalized":
-            if self.config.cache_size > 0:
+        elif strategy == "normalized":
+            if self.config.cache_size > 0 and hasattr(self, '_check_bytes_cached'):
                 info = self._check_bytes_cached.cache_info()
                 result.update({
                     "hits": info.hits,
@@ -261,8 +278,8 @@ class CIDARTHA:
             else:
                 result["status"] = "cache_disabled"
                 
-        elif self.config.cache_strategy == "dual":
-            if self.config.cache_size > 0:
+        elif strategy == "dual":
+            if self.config.cache_size > 0 and hasattr(self, '_normalize_cache'):
                 norm_info = self._normalize_cache.cache_info()
                 check_info = self._check_bytes_cached.cache_info()
                 result.update({
@@ -286,21 +303,25 @@ class CIDARTHA:
 
     def clear_cache(self):
         """Clear all caches."""
-        if self.config.cache_strategy == "simple" and self.config.cache_size > 0:
-            self._check_impl.cache_clear()
-        elif self.config.cache_strategy == "normalized" and self.config.cache_size > 0:
+        strategy = self.config.cache_strategy
+        
+        if strategy == "simple" and self.config.cache_size > 0 and hasattr(self, '_check_cached'):
+            self._check_cached.cache_clear()
+        elif strategy == "normalized" and self.config.cache_size > 0 and hasattr(self, '_check_bytes_cached'):
             self._check_bytes_cached.cache_clear()
-        elif self.config.cache_strategy == "dual" and self.config.cache_size > 0:
-            self._normalize_cache.cache_clear()
-            self._check_bytes_cached.cache_clear()
+        elif strategy == "dual" and self.config.cache_size > 0:
+            if hasattr(self, '_normalize_cache'):
+                self._normalize_cache.cache_clear()
+            if hasattr(self, '_check_bytes_cached'):
+                self._check_bytes_cached.cache_clear()
 
     def __getstate__(self):
         state = self.__dict__.copy()
         # Remove non-serializable items
         del state['_lock']
         # Remove cached methods (they'll be recreated on load)
-        if '_check_impl' in state:
-            del state['_check_impl']
+        if '_check_cached' in state:
+            del state['_check_cached']
         if '_check_bytes_cached' in state:
             del state['_check_bytes_cached']
         if '_normalize_cache' in state:

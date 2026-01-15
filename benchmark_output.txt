@@ -1,0 +1,918 @@
+======================================================================
+CIDARTHA5 Caching Strategy Benchmark Suite
+======================================================================
+
+Setup:
+  CIDR Blocks:    1,000
+  Lookup Operations: 50,000
+
+Generating test data...
+
+======================================================================
+Testing Strategy: No Cache
+======================================================================
+
+Workload: Low Cardinality (100 unique IPs, repeated)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+No Cache - Low Cardinality (100 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0334 seconds
+Throughput:       1,495,381 ops/sec
+Avg Latency:      0.53 μs
+Median Latency:   0.52 μs
+P95 Latency:      0.58 μs
+P99 Latency:      0.62 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+======================================================================
+No Cache - Low Cardinality (100 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0256 seconds
+Throughput:       1,952,697 ops/sec
+Avg Latency:      0.38 μs
+Median Latency:   0.37 μs
+P95 Latency:      0.42 μs
+P99 Latency:      0.46 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+======================================================================
+No Cache - Low Cardinality (100 unique IPs, repeated) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0301 seconds
+Throughput:       1,659,115 ops/sec
+Avg Latency:      0.47 μs
+Median Latency:   0.48 μs
+P95 Latency:      0.57 μs
+P99 Latency:      0.60 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+Workload: Medium Cardinality (1000 unique IPs, repeated)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+No Cache - Medium Cardinality (1000 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0326 seconds
+Throughput:       1,534,510 ops/sec
+Avg Latency:      0.52 μs
+Median Latency:   0.51 μs
+P95 Latency:      0.57 μs
+P99 Latency:      0.62 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+======================================================================
+No Cache - Medium Cardinality (1000 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0247 seconds
+Throughput:       2,027,718 ops/sec
+Avg Latency:      0.37 μs
+Median Latency:   0.36 μs
+P95 Latency:      0.41 μs
+P99 Latency:      0.45 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+======================================================================
+No Cache - Medium Cardinality (1000 unique IPs, repeated) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0293 seconds
+Throughput:       1,708,955 ops/sec
+Avg Latency:      0.46 μs
+Median Latency:   0.47 μs
+P95 Latency:      0.57 μs
+P99 Latency:      0.61 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+Workload: High Cardinality (10000 unique IPs)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+No Cache - High Cardinality (10000 unique IPs) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0329 seconds
+Throughput:       1,518,712 ops/sec
+Avg Latency:      0.52 μs
+Median Latency:   0.51 μs
+P95 Latency:      0.57 μs
+P99 Latency:      0.62 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+======================================================================
+No Cache - High Cardinality (10000 unique IPs) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0249 seconds
+Throughput:       2,005,153 ops/sec
+Avg Latency:      0.37 μs
+Median Latency:   0.36 μs
+P95 Latency:      0.42 μs
+P99 Latency:      0.46 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+======================================================================
+No Cache - High Cardinality (10000 unique IPs) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0293 seconds
+Throughput:       1,705,155 ops/sec
+Avg Latency:      0.46 μs
+Median Latency:   0.47 μs
+P95 Latency:      0.57 μs
+P99 Latency:      0.62 μs
+
+Cache Statistics:
+  Strategy:       none
+  Status:         No caching enabled
+
+
+======================================================================
+Testing Strategy: Simple LRU (No Normalization)
+======================================================================
+
+Workload: Low Cardinality (100 unique IPs, repeated)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Simple LRU (No Normalization) - Low Cardinality (100 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0133 seconds
+Throughput:       3,750,179 ops/sec
+Avg Latency:      0.14 μs
+Median Latency:   0.14 μs
+P95 Latency:      0.17 μs
+P99 Latency:      0.19 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           49,900
+  Misses:         100
+  Hit Rate:       99.80%
+  Current Size:   100
+  Max Size:       4,096
+
+
+======================================================================
+Simple LRU (No Normalization) - Low Cardinality (100 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0149 seconds
+Throughput:       3,360,772 ops/sec
+Avg Latency:      0.17 μs
+Median Latency:   0.17 μs
+P95 Latency:      0.20 μs
+P99 Latency:      0.23 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           49,900
+  Misses:         100
+  Hit Rate:       99.80%
+  Current Size:   100
+  Max Size:       4,096
+
+
+======================================================================
+Simple LRU (No Normalization) - Low Cardinality (100 unique IPs, repeated) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0140 seconds
+Throughput:       3,562,553 ops/sec
+Avg Latency:      0.17 μs
+Median Latency:   0.17 μs
+P95 Latency:      0.21 μs
+P99 Latency:      0.23 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           49,900
+  Misses:         100
+  Hit Rate:       99.80%
+  Current Size:   100
+  Max Size:       4,096
+
+
+Workload: Medium Cardinality (1000 unique IPs, repeated)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Simple LRU (No Normalization) - Medium Cardinality (1000 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0138 seconds
+Throughput:       3,633,388 ops/sec
+Avg Latency:      0.16 μs
+Median Latency:   0.14 μs
+P95 Latency:      0.18 μs
+P99 Latency:      0.70 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           49,000
+  Misses:         1,000
+  Hit Rate:       98.00%
+  Current Size:   1,000
+  Max Size:       4,096
+
+
+======================================================================
+Simple LRU (No Normalization) - Medium Cardinality (1000 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0163 seconds
+Throughput:       3,061,636 ops/sec
+Avg Latency:      0.20 μs
+Median Latency:   0.17 μs
+P95 Latency:      0.23 μs
+P99 Latency:      0.54 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           49,000
+  Misses:         1,000
+  Hit Rate:       98.00%
+  Current Size:   1,000
+  Max Size:       4,096
+
+
+======================================================================
+Simple LRU (No Normalization) - Medium Cardinality (1000 unique IPs, repeated) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0146 seconds
+Throughput:       3,428,147 ops/sec
+Avg Latency:      0.18 μs
+Median Latency:   0.16 μs
+P95 Latency:      0.21 μs
+P99 Latency:      0.64 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           49,000
+  Misses:         1,000
+  Hit Rate:       98.00%
+  Current Size:   1,000
+  Max Size:       4,096
+
+
+Workload: High Cardinality (10000 unique IPs)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Simple LRU (No Normalization) - High Cardinality (10000 unique IPs) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0439 seconds
+Throughput:       1,138,221 ops/sec
+Avg Latency:      0.74 μs
+Median Latency:   0.71 μs
+P95 Latency:      0.83 μs
+P99 Latency:      0.95 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           0
+  Misses:         50,000
+  Hit Rate:       0.00%
+  Current Size:   4,096
+  Max Size:       4,096
+
+
+======================================================================
+Simple LRU (No Normalization) - High Cardinality (10000 unique IPs) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0385 seconds
+Throughput:       1,297,755 ops/sec
+Avg Latency:      0.63 μs
+Median Latency:   0.54 μs
+P95 Latency:      0.66 μs
+P99 Latency:      0.77 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           0
+  Misses:         50,000
+  Hit Rate:       0.00%
+  Current Size:   4,096
+  Max Size:       4,096
+
+
+======================================================================
+Simple LRU (No Normalization) - High Cardinality (10000 unique IPs) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0385 seconds
+Throughput:       1,297,336 ops/sec
+Avg Latency:      0.64 μs
+Median Latency:   0.63 μs
+P95 Latency:      0.78 μs
+P99 Latency:      0.91 μs
+
+Cache Statistics:
+  Strategy:       simple
+  Hits:           0
+  Misses:         50,000
+  Hit Rate:       0.00%
+  Current Size:   4,096
+  Max Size:       4,096
+
+
+======================================================================
+Testing Strategy: Normalized LRU (Pre-convert to bytes)
+======================================================================
+
+Workload: Low Cardinality (100 unique IPs, repeated)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - Low Cardinality (100 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0277 seconds
+Throughput:       1,803,349 ops/sec
+Avg Latency:      0.42 μs
+Median Latency:   0.42 μs
+P95 Latency:      0.46 μs
+P99 Latency:      0.49 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           49,900
+  Misses:         100
+  Hit Rate:       99.80%
+  Current Size:   100
+  Max Size:       4,096
+
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - Low Cardinality (100 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0202 seconds
+Throughput:       2,478,930 ops/sec
+Avg Latency:      0.27 μs
+Median Latency:   0.27 μs
+P95 Latency:      0.31 μs
+P99 Latency:      0.34 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           49,900
+  Misses:         100
+  Hit Rate:       99.80%
+  Current Size:   100
+  Max Size:       4,096
+
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - Low Cardinality (100 unique IPs, repeated) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0237 seconds
+Throughput:       2,105,798 ops/sec
+Avg Latency:      0.35 μs
+Median Latency:   0.38 μs
+P95 Latency:      0.45 μs
+P99 Latency:      0.48 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           49,900
+  Misses:         100
+  Hit Rate:       99.80%
+  Current Size:   100
+  Max Size:       4,096
+
+
+Workload: Medium Cardinality (1000 unique IPs, repeated)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - Medium Cardinality (1000 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0292 seconds
+Throughput:       1,711,070 ops/sec
+Avg Latency:      0.45 μs
+Median Latency:   0.43 μs
+P95 Latency:      0.50 μs
+P99 Latency:      0.72 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           49,000
+  Misses:         1,000
+  Hit Rate:       98.00%
+  Current Size:   1,000
+  Max Size:       4,096
+
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - Medium Cardinality (1000 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0208 seconds
+Throughput:       2,402,623 ops/sec
+Avg Latency:      0.28 μs
+Median Latency:   0.27 μs
+P95 Latency:      0.33 μs
+P99 Latency:      0.54 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           49,000
+  Misses:         1,000
+  Hit Rate:       98.00%
+  Current Size:   1,000
+  Max Size:       4,096
+
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - Medium Cardinality (1000 unique IPs, repeated) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0248 seconds
+Throughput:       2,013,236 ops/sec
+Avg Latency:      0.37 μs
+Median Latency:   0.40 μs
+P95 Latency:      0.49 μs
+P99 Latency:      0.66 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           49,000
+  Misses:         1,000
+  Hit Rate:       98.00%
+  Current Size:   1,000
+  Max Size:       4,096
+
+
+Workload: High Cardinality (10000 unique IPs)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - High Cardinality (10000 unique IPs) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0444 seconds
+Throughput:       1,126,700 ops/sec
+Avg Latency:      0.75 μs
+Median Latency:   0.72 μs
+P95 Latency:      0.85 μs
+P99 Latency:      0.98 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           0
+  Misses:         50,000
+  Hit Rate:       0.00%
+  Current Size:   4,096
+  Max Size:       4,096
+
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - High Cardinality (10000 unique IPs) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0364 seconds
+Throughput:       1,374,850 ops/sec
+Avg Latency:      0.59 μs
+Median Latency:   0.55 μs
+P95 Latency:      0.68 μs
+P99 Latency:      0.82 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           0
+  Misses:         50,000
+  Hit Rate:       0.00%
+  Current Size:   4,096
+  Max Size:       4,096
+
+
+======================================================================
+Normalized LRU (Pre-convert to bytes) - High Cardinality (10000 unique IPs) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0417 seconds
+Throughput:       1,197,817 ops/sec
+Avg Latency:      0.70 μs
+Median Latency:   0.66 μs
+P95 Latency:      0.82 μs
+P99 Latency:      0.95 μs
+
+Cache Statistics:
+  Strategy:       normalized
+  Hits:           0
+  Misses:         50,000
+  Hit Rate:       0.00%
+  Current Size:   4,096
+  Max Size:       4,096
+
+
+======================================================================
+Testing Strategy: Dual LRU (Separate normalize + lookup)
+======================================================================
+
+Workload: Low Cardinality (100 unique IPs, repeated)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - Low Cardinality (100 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0195 seconds
+Throughput:       2,558,828 ops/sec
+Avg Latency:      0.26 μs
+Median Latency:   0.25 μs
+P95 Latency:      0.29 μs
+P99 Latency:      0.31 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         49,900
+    Misses:       100
+    Hit Rate:     99.80%
+    Size:         100/4,096
+  Lookup Cache:
+    Hits:         49,900
+    Misses:       100
+    Hit Rate:     99.80%
+    Size:         100/4,096
+
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - Low Cardinality (100 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0207 seconds
+Throughput:       2,415,556 ops/sec
+Avg Latency:      0.29 μs
+Median Latency:   0.28 μs
+P95 Latency:      0.32 μs
+P99 Latency:      0.34 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         49,900
+    Misses:       100
+    Hit Rate:     99.80%
+    Size:         100/4,096
+  Lookup Cache:
+    Hits:         49,900
+    Misses:       100
+    Hit Rate:     99.80%
+    Size:         100/4,096
+
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - Low Cardinality (100 unique IPs, repeated) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0200 seconds
+Throughput:       2,502,688 ops/sec
+Avg Latency:      0.28 μs
+Median Latency:   0.27 μs
+P95 Latency:      0.33 μs
+P99 Latency:      0.36 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         49,900
+    Misses:       100
+    Hit Rate:     99.80%
+    Size:         100/4,096
+  Lookup Cache:
+    Hits:         49,900
+    Misses:       100
+    Hit Rate:     99.80%
+    Size:         100/4,096
+
+
+Workload: Medium Cardinality (1000 unique IPs, repeated)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - Medium Cardinality (1000 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0205 seconds
+Throughput:       2,433,281 ops/sec
+Avg Latency:      0.28 μs
+Median Latency:   0.26 μs
+P95 Latency:      0.33 μs
+P99 Latency:      0.89 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         49,000
+    Misses:       1,000
+    Hit Rate:     98.00%
+    Size:         1,000/4,096
+  Lookup Cache:
+    Hits:         49,000
+    Misses:       1,000
+    Hit Rate:     98.00%
+    Size:         1,000/4,096
+
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - Medium Cardinality (1000 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0219 seconds
+Throughput:       2,279,260 ops/sec
+Avg Latency:      0.31 μs
+Median Latency:   0.29 μs
+P95 Latency:      0.36 μs
+P99 Latency:      0.66 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         49,000
+    Misses:       1,000
+    Hit Rate:     98.00%
+    Size:         1,000/4,096
+  Lookup Cache:
+    Hits:         49,000
+    Misses:       1,000
+    Hit Rate:     98.00%
+    Size:         1,000/4,096
+
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - Medium Cardinality (1000 unique IPs, repeated) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0210 seconds
+Throughput:       2,377,788 ops/sec
+Avg Latency:      0.30 μs
+Median Latency:   0.28 μs
+P95 Latency:      0.36 μs
+P99 Latency:      0.78 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         49,000
+    Misses:       1,000
+    Hit Rate:     98.00%
+    Size:         1,000/4,096
+  Lookup Cache:
+    Hits:         49,000
+    Misses:       1,000
+    Hit Rate:     98.00%
+    Size:         1,000/4,096
+
+
+Workload: High Cardinality (10000 unique IPs)
+  Setting up CIDARTHA...
+  Running benchmark...
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - High Cardinality (10000 unique IPs) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0537 seconds
+Throughput:       930,242 ops/sec
+Avg Latency:      0.93 μs
+Median Latency:   0.88 μs
+P95 Latency:      1.07 μs
+P99 Latency:      1.40 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         0
+    Misses:       50,000
+    Hit Rate:     0.00%
+    Size:         4,096/4,096
+  Lookup Cache:
+    Hits:         0
+    Misses:       50,000
+    Hit Rate:     0.00%
+    Size:         4,096/4,096
+
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - High Cardinality (10000 unique IPs) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0449 seconds
+Throughput:       1,112,842 ops/sec
+Avg Latency:      0.76 μs
+Median Latency:   0.69 μs
+P95 Latency:      0.89 μs
+P99 Latency:      1.11 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         0
+    Misses:       50,000
+    Hit Rate:     0.00%
+    Size:         4,096/4,096
+  Lookup Cache:
+    Hits:         0
+    Misses:       50,000
+    Hit Rate:     0.00%
+    Size:         4,096/4,096
+
+
+======================================================================
+Dual LRU (Separate normalize + lookup) - High Cardinality (10000 unique IPs) (mixed)
+======================================================================
+Operations:       50,000
+Total Time:       0.0495 seconds
+Throughput:       1,010,834 ops/sec
+Avg Latency:      0.85 μs
+Median Latency:   0.82 μs
+P95 Latency:      1.05 μs
+P99 Latency:      1.23 μs
+
+Cache Statistics:
+  Strategy:       dual
+  Normalize Cache:
+    Hits:         0
+    Misses:       50,000
+    Hit Rate:     0.00%
+    Size:         4,096/4,096
+  Lookup Cache:
+    Hits:         0
+    Misses:       50,000
+    Hit Rate:     0.00%
+    Size:         4,096/4,096
+
+
+======================================================================
+Testing CIDARTHA4 (Legacy) for Comparison
+======================================================================
+
+Workload: Low Cardinality (100 unique IPs, repeated)
+  Setting up CIDARTHA4...
+  Running benchmark...
+
+======================================================================
+CIDARTHA4 - Low Cardinality (100 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0133 seconds
+Throughput:       3,770,260 ops/sec
+Avg Latency:      0.14 μs
+Median Latency:   0.14 μs
+P95 Latency:      0.16 μs
+P99 Latency:      0.18 μs
+
+
+======================================================================
+CIDARTHA4 - Low Cardinality (100 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0138 seconds
+Throughput:       3,634,402 ops/sec
+Avg Latency:      0.15 μs
+Median Latency:   0.15 μs
+P95 Latency:      0.18 μs
+P99 Latency:      0.20 μs
+
+
+Workload: Medium Cardinality (1000 unique IPs, repeated)
+  Setting up CIDARTHA4...
+  Running benchmark...
+
+======================================================================
+CIDARTHA4 - Medium Cardinality (1000 unique IPs, repeated) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0141 seconds
+Throughput:       3,553,191 ops/sec
+Avg Latency:      0.16 μs
+Median Latency:   0.14 μs
+P95 Latency:      0.19 μs
+P99 Latency:      0.62 μs
+
+
+======================================================================
+CIDARTHA4 - Medium Cardinality (1000 unique IPs, repeated) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0146 seconds
+Throughput:       3,422,430 ops/sec
+Avg Latency:      0.18 μs
+Median Latency:   0.16 μs
+P95 Latency:      0.22 μs
+P99 Latency:      0.48 μs
+
+
+Workload: High Cardinality (10000 unique IPs)
+  Setting up CIDARTHA4...
+  Running benchmark...
+
+======================================================================
+CIDARTHA4 - High Cardinality (10000 unique IPs) (strings)
+======================================================================
+Operations:       50,000
+Total Time:       0.0406 seconds
+Throughput:       1,232,469 ops/sec
+Avg Latency:      0.67 μs
+Median Latency:   0.64 μs
+P95 Latency:      0.76 μs
+P99 Latency:      0.86 μs
+
+
+======================================================================
+CIDARTHA4 - High Cardinality (10000 unique IPs) (bytes)
+======================================================================
+Operations:       50,000
+Total Time:       0.0311 seconds
+Throughput:       1,605,308 ops/sec
+Avg Latency:      0.50 μs
+Median Latency:   0.48 μs
+P95 Latency:      0.60 μs
+P99 Latency:      0.73 μs
+
+
+======================================================================
+SUMMARY: Throughput Comparison (ops/sec)
+======================================================================
+
+Strategy                       Low Card        Med Card        High Card      
+----------------------------------------------------------------------
+No Cache                       1,495,381       1,534,510       1,518,712      
+Simple LRU (No Normalization)  3,750,179       3,633,388       1,138,221      
+Normalized LRU (Pre-convert to bytes) 1,803,349       1,711,070       1,126,700      
+Dual LRU (Separate normalize + lookup) 2,558,828       2,433,281       930,242        
+CIDARTHA4 (Legacy)             3,770,260       3,553,191       1,232,469      
+
+======================================================================
+SUMMARY: Average Latency (μs)
+======================================================================
+
+Strategy                       Low Card        Med Card        High Card      
+----------------------------------------------------------------------
+No Cache                       0.53            0.52            0.52           
+Simple LRU (No Normalization)  0.14            0.16            0.74           
+Normalized LRU (Pre-convert to bytes) 0.42            0.45            0.75           
+Dual LRU (Separate normalize + lookup) 0.26            0.28            0.93           
+CIDARTHA4 (Legacy)             0.14            0.16            0.67           
+
+======================================================================
+Benchmark Complete!
+======================================================================
