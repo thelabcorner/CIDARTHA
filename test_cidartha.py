@@ -374,9 +374,7 @@ class TestCIDARTHACaching(unittest.TestCase):
         # Insert
         fw.insert("192.168.1.0/24")
         
-        # Check should now return True (even with cache)
-        # Note: Current implementation doesn't invalidate cache on insert,
-        # so this tests current behavior
+        # Cache should be invalidated, so check returns True
         result = fw.check("192.168.1.1")
         self.assertTrue(result)
 

@@ -18,6 +18,7 @@ FIREHOL_URLS = [
     "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_level3.netset",
     "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_level4.netset",
     "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_webserver.netset",
+    "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_abusers_30d.netset",
 ]
 
 

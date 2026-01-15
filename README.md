@@ -304,27 +304,27 @@ firewall = CIDARTHA.load(data)
 
 ## Benchmarks
 
-Real-world performance benchmarks using [Firehol blocklist-ipsets](https://github.com/firehol/blocklist-ipsets) data (109,836 CIDR blocks from firehol_level1, firehol_level2, firehol_level3, firehol_level4, and firehol_webserver):
+Real-world performance benchmarks using [Firehol blocklist-ipsets](https://github.com/firehol/blocklist-ipsets) data (277,166 CIDR blocks from firehol_level1, firehol_level2, firehol_level3, firehol_level4, firehol_webserver, and firehol_abusers_30d):
 
 ### Insertion Performance
-- **Insertion Rate**: 81.73 K entries/second
-- **Average Time per Insert**: 12.24 μs
-- **Memory Usage**: 49.12 MB (0.46 KB per entry)
+- **Insertion Rate**: 68.99 K entries/second
+- **Average Time per Insert**: 14.50 μs
+- **Memory Usage**: 98.62 MB (0.36 KB per entry)
 
 ### Lookup Performance
-- **Lookup Rate**: 900.05 K lookups/second
-- **Average Time per Lookup**: 1.11 μs
+- **Lookup Rate**: 812.77 K lookups/second
+- **Average Time per Lookup**: 1.23 μs
 - **Cache Hit Rate**: 100% (with LRU caching)
 
 ### Serialization Performance
-- **Serialized Size**: 2.81 MB (42.9:1 compression ratio)
-- **Serialization Time**: 399.79 ms
-- **Deserialization Time**: 566.13 ms
+- **Serialized Size**: 6.04 MB (45.9:1 compression ratio)
+- **Serialization Time**: 958.03 ms
+- **Deserialization Time**: 1.28 s
 
 ### Benchmark Notes
 
 - Benchmarks performed on standard GitHub Actions runner hardware
-- Dataset: 109,836 unique CIDR blocks from Firehol blocklist-ipsets
+- Dataset: 277,166 unique CIDR blocks from Firehol blocklist-ipsets
 - Lookup benchmark: 100,000 IP address checks
 - Memory measurements exclude Python interpreter overhead
 
