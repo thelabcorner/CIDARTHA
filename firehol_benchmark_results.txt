@@ -1,0 +1,248 @@
+======================================================================
+CIDARTHA5 vs CIDARTHA4 - FireHOL Level 1 Blocklist Benchmark
+======================================================================
+
+Loading FireHOL Level 1 blocklist...
+  Loaded 4,485 CIDR blocks
+
+  Blocklist Analysis:
+    Total CIDR blocks: 4485
+    Prefix distribution:
+      / 3:    1 blocks ( 0.02%)
+      / 8:    3 blocks ( 0.07%)
+      /10:    1 blocks ( 0.02%)
+      /12:    4 blocks ( 0.09%)
+      /13:    1 blocks ( 0.02%)
+      /14:    3 blocks ( 0.07%)
+      /15:    9 blocks ( 0.20%)
+      /16:  133 blocks ( 2.97%)
+      /17:   20 blocks ( 0.45%)
+      /18:   41 blocks ( 0.91%)
+      /19:   76 blocks ( 1.69%)
+      /20:  164 blocks ( 3.66%)
+      /21:  158 blocks ( 3.52%)
+      /22:  732 blocks (16.32%)
+      /23:  928 blocks (20.69%)
+      /24: 2206 blocks (49.19%)
+      /25:    1 blocks ( 0.02%)
+      /26:    3 blocks ( 0.07%)
+      /32:    1 blocks ( 0.02%)
+
+    Partial byte masks (e.g., /12, /20): 2142 blocks (47.8%)
+
+Generating 50,000 test IPs (50% blocked, 50% allowed)...
+  Generated 50,000 test IPs
+
+======================================================================
+Setting up CIDARTHA4 (baseline)...
+======================================================================
+  Inserting CIDR blocks...
+  Insertion time: 0.04 seconds
+
+======================================================================
+Benchmarking: CIDARTHA4
+======================================================================
+  Warming up...
+  Running benchmark...
+
+  Results:
+    Operations:       50,000
+    Total Time:       0.0479 seconds
+    Throughput:       1,043,873 ops/sec
+
+  Latency (μs):
+    Average:          0.75
+    Median:           0.70
+    Min:              0.12
+    Max:              418.24
+    P95:              0.86
+    P99:              1.07
+
+======================================================================
+Setting up CIDARTHA5 (Simple LRU (Recommended))...
+======================================================================
+  Inserting CIDR blocks...
+  Insertion time: 0.04 seconds
+
+======================================================================
+Benchmarking: CIDARTHA5 (Simple LRU (Recommended))
+======================================================================
+  Warming up...
+  Running benchmark...
+
+  Results:
+    Operations:       50,000
+    Total Time:       0.0754 seconds
+    Throughput:       662,838 ops/sec
+
+  Latency (μs):
+    Average:          1.31
+    Median:           0.95
+    Min:              0.16
+    Max:              115.94
+    P95:              3.42
+    P99:              3.54
+
+  Cache Statistics:
+    Strategy:         simple
+    Hits:             1,206
+    Misses:           48,794
+    Hit Rate:         2.41%
+    Cache Size:       4,096/4,096
+
+======================================================================
+Setting up CIDARTHA5 (Normalized LRU)...
+======================================================================
+  Inserting CIDR blocks...
+  Insertion time: 0.05 seconds
+
+======================================================================
+Benchmarking: CIDARTHA5 (Normalized LRU)
+======================================================================
+  Warming up...
+  Running benchmark...
+
+  Results:
+    Operations:       50,000
+    Total Time:       0.0777 seconds
+    Throughput:       643,723 ops/sec
+
+  Latency (μs):
+    Average:          1.36
+    Median:           0.98
+    Min:              0.43
+    Max:              148.49
+    P95:              3.52
+    P99:              3.63
+
+  Cache Statistics:
+    Strategy:         normalized
+    Hits:             1,206
+    Misses:           48,794
+    Hit Rate:         2.41%
+    Cache Size:       4,096/4,096
+
+======================================================================
+Setting up CIDARTHA5 (Dual LRU)...
+======================================================================
+  Inserting CIDR blocks...
+  Insertion time: 0.04 seconds
+
+======================================================================
+Benchmarking: CIDARTHA5 (Dual LRU)
+======================================================================
+  Warming up...
+  Running benchmark...
+
+  Results:
+    Operations:       50,000
+    Total Time:       0.0898 seconds
+    Throughput:       556,917 ops/sec
+
+  Latency (μs):
+    Average:          1.57
+    Median:           1.17
+    Min:              0.27
+    Max:              1001.26
+    P95:              3.68
+    P99:              3.86
+
+  Cache Statistics:
+    Strategy:         dual
+    Normalize Cache:
+      Hit Rate:       2.41%
+      Size:           4,096/4,096
+    Lookup Cache:
+      Hit Rate:       2.41%
+      Size:           4,096/4,096
+
+======================================================================
+Setting up CIDARTHA5 (No Cache)...
+======================================================================
+  Inserting CIDR blocks...
+  Insertion time: 0.04 seconds
+
+======================================================================
+Benchmarking: CIDARTHA5 (No Cache)
+======================================================================
+  Warming up...
+  Running benchmark...
+
+  Results:
+    Operations:       50,000
+    Total Time:       0.0668 seconds
+    Throughput:       748,115 ops/sec
+
+  Latency (μs):
+    Average:          1.13
+    Median:           0.77
+    Min:              0.45
+    Max:              17.50
+    P95:              3.24
+    P99:              3.31
+
+  Cache Statistics:
+    Strategy:         none
+
+======================================================================
+SUMMARY: Performance Comparison
+======================================================================
+
+Implementation                           Throughput           Avg Latency    
+----------------------------------------------------------------------
+CIDARTHA4                                1,043,873 ops/sec    0.75 μs        
+CIDARTHA5 (Simple LRU (Recommended))     662,838 ops/sec      1.31 μs         (0.635x)
+CIDARTHA5 (Normalized LRU)               643,723 ops/sec      1.36 μs         (0.617x)
+CIDARTHA5 (Dual LRU)                     556,917 ops/sec      1.57 μs         (0.534x)
+CIDARTHA5 (No Cache)                     748,115 ops/sec      1.13 μs         (0.717x)
+
+======================================================================
+ANALYSIS
+======================================================================
+
+1. Dataset Characteristics:
+   - Total CIDR blocks: 4,485
+   - Partial byte masks: 2142 (47.8%)
+   - This is a challenging dataset with many CIDR blocks
+
+2. Workload Pattern:
+   - Test IPs: 50,000
+   - Mostly unique IPs (low cache hit rate: ~2.4%)
+   - High-cardinality workload
+
+3. Performance Trade-off:
+   - CIDARTHA5 fixes CIDR boundary bug (172.16.0.0/12 now works)
+   - Bug fix adds range checking for partial masks
+   - With low cache hits and many checks, overhead is visible
+   - 'none' strategy performs best (0.723x) by avoiding cache overhead
+
+4. When CIDARTHA5 Excels:
+   - Repeated IP lookups (high cache hit rate)
+   - Fewer CIDR blocks (<1000)
+   - Low-medium cardinality workloads
+   - See benchmark.py for cache-friendly scenarios
+
+======================================================================
+CONCLUSION
+======================================================================
+
+Dataset: FireHOL Level 1 (Production Blocklist)
+  CIDR Blocks: 4,485
+  Test IPs: 50,000
+  Cache Hit Rate: ~2.4% (high cardinality)
+
+Best CIDARTHA5 Strategy: CIDARTHA5 (No Cache)
+  Throughput: 748,115 ops/sec
+  vs CIDARTHA4: 0.717x
+  Avg Latency: 1.13 μs
+
+Trade-off Summary:
+  ✅ CIDARTHA5 fixes critical CIDR boundary bug
+  ✅ CIDARTHA5 excels with cache-friendly workloads (see benchmark.py)
+  ⚠️  CIDARTHA5 slower on high-cardinality workloads like FireHOL
+  💡 For this dataset, 'none' strategy (0.723x) is best choice
+
+⚠️  CIDARTHA5 trades performance for correctness in this scenario
+    Use 'none' strategy for high-cardinality workloads
+
+======================================================================
