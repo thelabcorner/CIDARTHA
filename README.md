@@ -91,7 +91,16 @@ firewall = CIDARTHA(config=config)
 
 ## Caching Strategies
 
-CIDARTHA5 offers 4 caching strategies to optimize for different workload patterns:
+CIDARTHA5 offers 4 caching strategies, each optimized for different workload patterns. Choose based on your specific use case:
+
+### Strategy Comparison Matrix
+
+| Strategy | Best For | Excels At | Falls Behind | Geometric Mean |
+|----------|----------|-----------|--------------|----------------|
+| **simple** ⭐ | Repeated IP lookups | **Speed**: Fastest overall (4M ops/sec) | High cardinality (>4K IPs) | **1.0068** ✓ |
+| **normalized** | Mixed str/bytes input | **Consistency**: Single cache entry per IP | Speed (2x slower than simple) | 0.5983 |
+| **dual** | Conversion + lookup | **Balance**: Caches both stages | Memory (2x cache space) | 0.7216 |
+| **none** | Unique IPs each time | **Predictability**: No cache churn | Repeated IPs (no speedup) | 0.5789 |
 
 ### 1. **"simple"** - Simple LRU Cache (Recommended) ⭐
 
@@ -100,16 +109,28 @@ config = CIDARTHAConfig(cache_strategy="simple", cache_size=4096)
 firewall = CIDARTHA(config=config)
 ```
 
-- **Best for**: Cache-friendly workloads with repeated IP lookups
-- **Pros**: Highest performance (1.006x vs CIDARTHA4), simple implementation
-- **Cons**: String and bytes create separate cache entries (acceptable trade-off)
-- **Performance**: 
-  - Low cardinality: ~3.9M ops/sec
-  - Medium cardinality: ~3.7M ops/sec
-  - High cardinality: ~1.1M ops/sec
-- **Geometric Mean**: **1.0062** ✓
+**✅ Excels At:**
+- **Maximum throughput**: 4.0M ops/sec with repeated IPs (best overall)
+- **Low latency**: 0.13 μs average (tied for fastest)
+- **Cache-friendly workloads**: 99%+ hit rate with <4096 unique IPs
+- **Simplicity**: Single LRU cache, minimal overhead
 
-**Use when**: You have <4096 unique IPs in typical workloads and prioritize maximum speed.
+**❌ Falls Behind:**
+- **High cardinality**: Drops to 1.1M ops/sec with >10K unique IPs (cache thrashing)
+- **Cache fragmentation**: String "192.168.1.1" and bytes b'\xc0\xa8\x01\x01' create separate entries
+- **Memory efficiency**: Can use 2x cache space if same IP queried as both string and bytes
+
+**📊 Performance Profile:**
+- Low cardinality (100 IPs): **4,030,899 ops/sec** (1.067x CIDARTHA4)
+- Medium cardinality (1K IPs): **3,766,201 ops/sec** (1.064x CIDARTHA4)
+- High cardinality (10K IPs): 1,085,528 ops/sec (0.899x CIDARTHA4)
+
+**🎯 Use When:**
+- You have <4096 unique IPs in typical query batches
+- Maximum speed is priority over cache consistency
+- Same IPs are looked up repeatedly (firewalls, rate limiters)
+
+---
 
 ### 2. **"normalized"** - Normalized LRU Cache
 
@@ -118,16 +139,29 @@ config = CIDARTHAConfig(cache_strategy="normalized", cache_size=4096)
 firewall = CIDARTHA(config=config)
 ```
 
-- **Best for**: Mixed string/bytes lookups, consistent cache keys
-- **Pros**: Same IP as string or bytes uses one cache entry
-- **Cons**: Normalization overhead (~50% slower than "simple")
-- **Performance**:
-  - Low cardinality: ~1.8M ops/sec
-  - Medium cardinality: ~1.8M ops/sec
-  - High cardinality: ~1.1M ops/sec
-- **Geometric Mean**: 0.5998
+**✅ Excels At:**
+- **Cache consistency**: "192.168.1.1" (string) and b'\xc0\xa8\x01\x01' (bytes) share one entry
+- **Memory efficiency**: 50% less cache memory vs "simple" for mixed input types
+- **High cardinality**: Better than "simple" at 10K+ IPs (less cache fragmentation)
+- **Predictable caching**: Always normalizes to bytes before caching
 
-**Use when**: You need cache consistency between string and bytes representations.
+**❌ Falls Behind:**
+- **Speed**: 1.8M ops/sec vs 4.0M for "simple" (2.2x slower)
+- **Normalization overhead**: Every lookup pays conversion cost before cache check
+- **Low cardinality**: Significantly slower where "simple" excels
+- **Overall performance**: 0.60x geometric mean vs CIDARTHA4
+
+**📊 Performance Profile:**
+- Low cardinality (100 IPs): 1,798,806 ops/sec (0.476x CIDARTHA4)
+- Medium cardinality (1K IPs): 1,749,712 ops/sec (0.494x CIDARTHA4)
+- High cardinality (10K IPs): **1,098,808 ops/sec** (0.910x CIDARTHA4)
+
+**🎯 Use When:**
+- You query same IPs as both strings AND bytes frequently
+- Cache consistency is more important than raw speed
+- Memory is constrained and cache efficiency matters
+
+---
 
 ### 3. **"dual"** - Dual LRU Cache
 
@@ -136,16 +170,29 @@ config = CIDARTHAConfig(cache_strategy="dual", cache_size=4096)
 firewall = CIDARTHA(config=config)
 ```
 
-- **Best for**: Separate normalization and lookup optimization
-- **Pros**: Two-tier caching, optimizes both conversions and lookups
-- **Cons**: More memory usage, moderate overhead
-- **Performance**:
-  - Low cardinality: ~2.7M ops/sec
-  - Medium cardinality: ~2.5M ops/sec
-  - High cardinality: ~941K ops/sec
-- **Geometric Mean**: 0.7310
+**✅ Excels At:**
+- **Two-stage optimization**: Separate caches for normalization (str→bytes) and lookup (bytes→result)
+- **Balanced approach**: Better than "normalized" speed, better than "simple" consistency
+- **String conversion caching**: Frequently converted IPs benefit from normalization cache
+- **Moderate memory**: More efficient than "simple" for mixed types, less than "normalized"
 
-**Use when**: You want to cache both string-to-bytes conversions and lookup results separately.
+**❌ Falls Behind:**
+- **Complexity**: Two cache layers add overhead vs single cache
+- **Memory usage**: 2x cache_size total memory (one cache per stage)
+- **Speed**: Still 30-50% slower than "simple" strategy
+- **High cardinality**: Worst performance at 10K+ IPs (904K ops/sec)
+
+**📊 Performance Profile:**
+- Low cardinality (100 IPs): 2,658,775 ops/sec (0.704x CIDARTHA4)
+- Medium cardinality (1K IPs): 2,523,359 ops/sec (0.713x CIDARTHA4)
+- High cardinality (10K IPs): 904,454 ops/sec (0.749x CIDARTHA4)
+
+**🎯 Use When:**
+- You want caching benefits for both conversion and lookup stages
+- Mixed string/bytes input but willing to use 2x memory
+- Need better than "normalized" speed but more consistency than "simple"
+
+---
 
 ### 4. **"none"** - No Cache
 
@@ -154,14 +201,28 @@ config = CIDARTHAConfig(cache_strategy="none")
 firewall = CIDARTHA(config=config)
 ```
 
-- **Best for**: High-cardinality workloads where every IP is unique
-- **Pros**: No cache overhead, predictable performance
-- **Cons**: No benefit from repeated lookups
-- **Performance**:
-  - All cardinalities: ~1.5M ops/sec (consistent)
-- **Geometric Mean**: 0.5991
+**✅ Excels At:**
+- **High cardinality**: Best performance at 10K+ unique IPs (1.47M ops/sec consistent)
+- **Predictable latency**: 0.54 μs ±0.01 μs variance across all workloads
+- **Zero cache overhead**: No memory for cache, no cache management
+- **No cache thrashing**: Performance doesn't degrade with cardinality
 
-**Use when**: Your workload has >10,000 unique IPs or each IP is looked up only once.
+**❌ Falls Behind:**
+- **Repeated IPs**: No speedup for repeated lookups (2.7x slower than "simple")
+- **Overall performance**: 0.58x geometric mean vs CIDARTHA4
+- **Low/medium cardinality**: Significantly slower where caching provides huge gains
+- **Missed opportunity**: Doesn't leverage temporal locality in queries
+
+**📊 Performance Profile:**
+- Low cardinality (100 IPs): 1,434,571 ops/sec (0.380x CIDARTHA4)
+- Medium cardinality (1K IPs): 1,481,926 ops/sec (0.418x CIDARTHA4)
+- High cardinality (10K IPs): **1,473,907 ops/sec** (1.220x CIDARTHA4)
+
+**🎯 Use When:**
+- Every IP is unique (stream processing, log analysis)
+- Workload has >10,000 distinct IPs per query batch
+- Predictable performance matters more than peak throughput
+- Memory is extremely constrained
 
 ## Performance Benchmarks
 
@@ -198,25 +259,83 @@ Comprehensive benchmarks comparing all strategies across different workload patt
 
 ## Configuration Guide
 
-### Choosing the Right Strategy
+### Choosing the Right Strategy - Decision Tree
+
+Use this guide to select the optimal caching strategy for your workload:
+
+```
+START: What's your workload like?
+│
+├─ Do you have >10,000 unique IPs per batch?
+│  └─ YES → Use "none" (no cache overhead, consistent 1.47M ops/sec)
+│  └─ NO  → Continue...
+│
+├─ Do you query the same IPs repeatedly?
+│  └─ NO  → Use "none" (no benefit from caching)
+│  └─ YES → Continue...
+│
+├─ Do you query IPs as BOTH strings AND bytes?
+│  └─ NO  → Use "simple" ⭐ (fastest, 4.0M ops/sec)
+│  └─ YES → Continue...
+│
+├─ Is cache consistency critical?
+│  ├─ YES, and speed is less important
+│  │  └─ Use "normalized" (single cache entry per IP)
+│  │
+│  └─ YES, but speed also matters
+│     └─ Use "dual" (balance of speed and consistency)
+```
+
+### Strategy Selection Examples
 
 ```python
 from CIDARTHA5 import CIDARTHA, CIDARTHAConfig
 
-# For typical firewall/blocklist applications (repeated IPs)
+# Example 1: Firewall with repeated IP checks (MOST COMMON) ⭐
+# - Same IPs checked hundreds of times
+# - <4096 unique IPs in typical batches
+# - String inputs only
 config = CIDARTHAConfig(cache_strategy="simple", cache_size=4096)
 
-# For stream processing (mostly unique IPs)
-config = CIDARTHAConfig(cache_strategy="none")
-
-# For very large working sets
+# Example 2: Rate limiter with large user base
+# - 50,000 unique IPs per minute
+# - Each IP checked multiple times
+# - Increase cache size to reduce thrashing
 config = CIDARTHAConfig(cache_strategy="simple", cache_size=16384)
 
-# For mixed string/bytes usage with cache consistency
+# Example 3: Log analysis pipeline
+# - Millions of unique IPs
+# - Each IP seen only once
+# - No caching benefit
+config = CIDARTHAConfig(cache_strategy="none")
+
+# Example 4: API with mixed input types
+# - Same IP as string from HTTP headers
+# - Same IP as bytes from network layer
+# - Need consistent caching
 config = CIDARTHAConfig(cache_strategy="normalized", cache_size=4096)
+
+# Example 5: Balanced production system
+# - Mix of repeated and unique IPs
+# - Mixed string/bytes inputs
+# - Want caching for both stages
+config = CIDARTHAConfig(cache_strategy="dual", cache_size=8192)
 
 firewall = CIDARTHA(config=config)
 ```
+
+### Quick Reference Table
+
+| Your Situation | Recommended Strategy | Cache Size |
+|----------------|---------------------|------------|
+| Firewall, <4K unique IPs/batch | **simple** ⭐ | 4096 |
+| Firewall, 4K-16K unique IPs/batch | **simple** | 16384 |
+| Firewall, >16K unique IPs/batch | **none** | N/A |
+| Mixed str/bytes, speed priority | **dual** | 8192 |
+| Mixed str/bytes, memory priority | **normalized** | 4096 |
+| Log analysis, unique IPs | **none** | N/A |
+| Rate limiter, <10K users | **simple** ⭐ | 8192 |
+| Rate limiter, >10K users | **simple** | 32768 |
 
 ### Monitoring Cache Performance
 
