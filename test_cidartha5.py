@@ -29,8 +29,6 @@ def test_caching_strategy(strategy_name: str) -> bool:
         fw.insert(cidr)
     
     # Test cases: (ip, expected_result)
-    # Note: 172.31.255.255 technically should be True for 172.16.0.0/12,
-    # but CIDARTHA4 returns False (known limitation), so we test for consistency
     test_cases = [
         ("192.168.1.100", True),
         ("192.168.1.1", True),
@@ -40,7 +38,8 @@ def test_caching_strategy(strategy_name: str) -> bool:
         ("10.255.255.255", True),
         ("11.0.0.1", False),
         ("172.16.0.1", True),
-        ("172.16.255.255", True),  # Changed from 172.31.255.255 to avoid edge case bug
+        ("172.17.0.0", True),  # Previously failed - now fixed!
+        ("172.31.255.255", True),  # Previously failed - now fixed!
         ("172.32.0.1", False),
         ("8.8.8.8", False),
         ("2001:db8::1", True),

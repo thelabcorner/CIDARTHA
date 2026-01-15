@@ -78,6 +78,7 @@ class CIDARTHANode:
     range_start: Optional[bytes] = None
     range_end: Optional[bytes] = None
     _children: Optional[Dict[int, "CIDARTHANode"]] = field(default=None, repr=False)
+    has_partial_mask: bool = False  # Indicates if subtree has nodes with partial byte masks
 
     # ---- Minimal dict-like interface ----
     def get(self, k, default=None):
@@ -102,18 +103,25 @@ class CIDARTHANode:
         return len(self._children) if self._children else 0
 
     # ---- Compact tuple serialization ----
-    def to_compact_tuple(self) -> Tuple[bool, Optional[bytes], Optional[bytes], Optional[Dict]]:
-        """Serialize to (is_end, start, end, children_dict) format."""
+    def to_compact_tuple(self) -> Tuple[bool, Optional[bytes], Optional[bytes], Optional[Dict], bool]:
+        """Serialize to (is_end, start, end, children_dict, has_partial_mask) format."""
         children = None
         if self._children:
             children = {k: v.to_compact_tuple() for k, v in self._children.items()}
-        return (self.is_end, self.range_start, self.range_end, children)
+        return (self.is_end, self.range_start, self.range_end, children, self.has_partial_mask)
 
     @staticmethod
     def from_compact_tuple(data: Tuple) -> "CIDARTHANode":
         """Deserialize from compact tuple format."""
-        is_end, start, end, children_dict = data
-        node = CIDARTHANode(is_end=is_end, range_start=start, range_end=end)
+        # Support both old and new formats
+        if len(data) == 4:
+            # Old format (backward compatibility)
+            is_end, start, end, children_dict = data
+            has_partial_mask = False
+        else:
+            is_end, start, end, children_dict, has_partial_mask = data
+            
+        node = CIDARTHANode(is_end=is_end, range_start=start, range_end=end, has_partial_mask=has_partial_mask)
 
         if children_dict:
             # Direct assignment to avoid __setitem__ overhead during construction
@@ -214,11 +222,20 @@ class CIDARTHA:
             if children is None:
                 return False
 
-            node = children.get(byte)
-            if node is None:
+            next_node = children.get(byte)
+            if next_node is None:
+                # No exact match - only do range check if this level has partial masks
+                if node.has_partial_mask and children:
+                    for child_node in children.values():
+                        if child_node.is_end and child_node.range_start and child_node.range_end:
+                            # Check if IP is within this CIDR's range
+                            if child_node.range_start <= ip_bytes <= child_node.range_end:
+                                return True
                 return False
-            if node.is_end:
+            
+            if next_node.is_end:
                 return True
+            node = next_node
 
         return False
 
@@ -424,6 +441,9 @@ class CIDARTHA:
         NodeCtor = CIDARTHANode
         mark_end = self._mark_as_end_node
         masks = MASKS
+        
+        # Track if we have a partial mask (for optimization)
+        has_partial = (rem_bits > 0)
 
         # Traverse full bytes
         for i in range(full_bytes):
@@ -437,10 +457,18 @@ class CIDARTHA:
                 if nxt is None:
                     nxt = NodeCtor()
                     children[b] = nxt
+            
+            # Mark parent if it will have a child with partial mask
+            if has_partial and i == full_bytes - 1:
+                node.has_partial_mask = True
+            
             node = nxt
 
         # Handle partial byte
         if rem_bits:
+            # Mark this node as having a partial mask child
+            node.has_partial_mask = True
+            
             b = addr[full_bytes] & masks[rem_bits - 1]
             children = node._children
             if children is None:
