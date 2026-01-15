@@ -8,13 +8,7 @@ from functools import lru_cache
 from typing import Optional, Tuple, Dict
 
 import msgpack
-
-try:
-    from config import CIDARTHAConfig, get_default_config
-except ImportError:
-    # Fallback if config module is not available
-    CIDARTHAConfig = None
-    get_default_config = None
+from config import CIDARTHAConfig, get_default_config
 
 # Predefine bit masks
 MASKS = [(0xFF << (8 - i)) & 0xFF for i in range(1, 9)]
@@ -163,7 +157,7 @@ class CIDARTHA:
         self._lock = RLock()  # Reentrant lock for thread safety
         
         # Get configuration
-        if config is None and get_default_config is not None:
+        if config is None:
             config = get_default_config()
         self.config = config
         
@@ -171,7 +165,11 @@ class CIDARTHA:
         if self.config is not None:
             logger.setLevel(self.config.log_level)
         
-        # Create configured cache wrappers
+        # Setup caches with configuration
+        self._setup_caches()
+    
+    def _setup_caches(self):
+        """Setup LRU caches with configured sizes."""
         if self.config is not None:
             # Wrap methods with configured cache sizes
             self._cached_ip_network = lru_cache(maxsize=self.config.ip_network_cache_size)(
@@ -202,22 +200,8 @@ class CIDARTHA:
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._lock = RLock()
-        # Recreate cached methods
-        config = state.get('config')
-        if config is not None:
-            self._cached_ip_network = lru_cache(maxsize=config.ip_network_cache_size)(
-                self._cached_ip_network_impl
-            )
-            self.check = lru_cache(maxsize=config.check_cache_size)(
-                self._check_impl
-            )
-        else:
-            self._cached_ip_network = lru_cache(maxsize=4096)(
-                self._cached_ip_network_impl
-            )
-            self.check = lru_cache(maxsize=4096)(
-                self._check_impl
-            )
+        # Recreate cached methods using helper
+        self._setup_caches()
 
     def dump(self) -> bytes:
         """Dump trie to compact msgpack bytes."""
