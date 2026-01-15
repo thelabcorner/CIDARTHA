@@ -16,7 +16,8 @@ CIDARTHA4.py implements a specialized trie (prefix tree) data structure optimize
 - **🔒 Thread-Safe**: Built with reentrant locks for concurrent operations
 - **💾 Memory Optimized**: Binary trie structure with minimal dictionary overhead
 - **📦 Serialization**: Compact msgpack-based persistence with efficient storage
-- **🚀 LRU Caching**: Built-in caching for frequently checked IPs (4096 entries)
+- **🚀 LRU Caching**: Built-in caching for frequently checked IPs with configurable sizes
+- **⚙️ Configurable**: Easily customize cache sizes, logging, and operational parameters
 - **🔄 Full CRUD Operations**: Insert, remove, check, and clear with batch support
 - **🌐 IPv4/IPv6 Support**: Handles both IPv4 and IPv6 addresses seamlessly
 - **⚙️ C-Level Optimization**: Uses CPython's socket module for fast conversions
@@ -181,14 +182,125 @@ firewall.check("1.2.3.4")      # Returns True
 firewall.check("192.168.1.1")  # Returns True
 ```
 
+## Configuration
+
+CIDARTHA supports extensive configuration to customize cache sizes, logging behavior, and other operational parameters. Configuration is completely optional - CIDARTHA works with sensible defaults out of the box.
+
+### Using Configuration
+
+```python
+from CIDARTHA4 import CIDARTHA, configure_global_ip_cache
+from config import CIDARTHAConfig
+import logging
+
+# Create instance with custom configuration
+config = CIDARTHAConfig(
+    ip_network_cache_size=8192,      # Cache for ip_network objects
+    check_cache_size=8192,            # Cache for IP lookup results
+    log_level=logging.DEBUG,          # Logging level
+    batch_insert_log_interval=0.1     # Log every 10% during batch insert
+)
+firewall = CIDARTHA(config=config)
+
+# Or configure global IP cache (shared across all instances)
+configure_global_ip_cache(16384)  # Increase global IP cache to 16384
+```
+
+### Configuration Options
+
+The `CIDARTHAConfig` dataclass provides the following options:
+
+- **`ip_to_bytes_cache_size`** (int, default: 8192): LRU cache size for IP string to bytes conversion. This cache is global and shared across all CIDARTHA instances. Use `configure_global_ip_cache()` to adjust it at runtime.
+
+- **`ip_network_cache_size`** (int, default: 4096): LRU cache size for `ip_network` objects used during insertion.
+
+- **`check_cache_size`** (int, default: 4096): LRU cache size for IP lookup results. Frequently checked IPs will be served from cache.
+
+- **`log_level`** (int, default: `logging.INFO`): Logging level for the CIDARTHA logger. Options: `logging.DEBUG`, `logging.INFO`, `logging.WARNING`, `logging.ERROR`.
+
+- **`batch_insert_log_interval`** (float, default: 0.05): Progress logging interval for batch inserts as a fraction (0.05 = 5%, meaning log every 5% of entries).
+
+### Configuration Examples
+
+#### Memory-Constrained Environments
+
+```python
+# Reduce cache sizes for low-memory systems
+config = CIDARTHAConfig(
+    ip_network_cache_size=512,
+    check_cache_size=512
+)
+firewall = CIDARTHA(config=config)
+```
+
+#### High-Performance Environments
+
+```python
+# Increase cache sizes for better performance
+config = CIDARTHAConfig(
+    ip_network_cache_size=16384,
+    check_cache_size=16384
+)
+configure_global_ip_cache(32768)
+firewall = CIDARTHA(config=config)
+```
+
+#### Custom Logging
+
+```python
+# Enable debug logging and more frequent progress updates
+config = CIDARTHAConfig(
+    log_level=logging.DEBUG,
+    batch_insert_log_interval=0.1  # Log every 10%
+)
+firewall = CIDARTHA(config=config)
+```
+
+#### Global Default Configuration
+
+```python
+# Set a global default configuration for all new instances
+from config import set_default_config, CIDARTHAConfig
+
+set_default_config(CIDARTHAConfig(
+    check_cache_size=8192,
+    log_level=logging.WARNING
+))
+
+# All new instances will use this configuration
+fw1 = CIDARTHA()  # Uses global default
+fw2 = CIDARTHA()  # Also uses global default
+```
+
 ## API Reference
 
-### `CIDARTHA()`
+### `CIDARTHA(config=None)`
 
 Creates a new CIDARTHA instance.
 
+**Parameters:**
+- `config` (CIDARTHAConfig, optional): Configuration object. If None, uses global default configuration.
+
 ```python
+# Default configuration
 firewall = CIDARTHA()
+
+# Custom configuration
+from config import CIDARTHAConfig
+config = CIDARTHAConfig(check_cache_size=8192)
+firewall = CIDARTHA(config=config)
+```
+
+### `configure_global_ip_cache(cache_size: int = 8192)`
+
+Configure the global IP to bytes cache size (module-level function).
+
+**Parameters:**
+- `cache_size` (int): Maximum number of IP addresses to cache
+
+```python
+from CIDARTHA4 import configure_global_ip_cache
+configure_global_ip_cache(16384)  # Double the default cache size
 ```
 
 ### `insert(input_data: str)`
@@ -263,18 +375,24 @@ Serializes the entire trie to compact msgpack bytes.
 data = firewall.dump()
 ```
 
-### `load(serialized_data: bytes) -> CIDARTHA`
+### `load(serialized_data: bytes, config=None) -> CIDARTHA`
 
 Static method to deserialize a trie from msgpack bytes.
 
 **Parameters:**
 - `serialized_data` (bytes): Serialized trie data
+- `config` (CIDARTHAConfig, optional): Configuration for the loaded instance
 
 **Returns:**
 - `CIDARTHA`: New CIDARTHA instance with restored data
 
 ```python
+# Load with default configuration
 firewall = CIDARTHA.load(data)
+
+# Load with custom configuration
+config = CIDARTHAConfig(check_cache_size=8192)
+firewall = CIDARTHA.load(data, config=config)
 ```
 
 ## Performance Characteristics
