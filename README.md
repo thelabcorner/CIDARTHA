@@ -302,6 +302,40 @@ firewall = CIDARTHA.load(data)
 4. **Lazy Children Allocation**: Nodes only allocate child dictionaries when needed
 5. **Direct Dictionary Access**: Bypasses method overhead in hot paths
 
+## Benchmarks
+
+Real-world performance benchmarks using [Firehol blocklist-ipsets](https://github.com/firehol/blocklist-ipsets) data (109,836 CIDR blocks from firehol_level1, firehol_level2, firehol_level3, firehol_level4, and firehol_webserver):
+
+### Insertion Performance
+- **Insertion Rate**: 81.73 K entries/second
+- **Average Time per Insert**: 12.24 μs
+- **Memory Usage**: 49.12 MB (0.46 KB per entry)
+
+### Lookup Performance
+- **Lookup Rate**: 900.05 K lookups/second
+- **Average Time per Lookup**: 1.11 μs
+- **Cache Hit Rate**: 100% (with LRU caching)
+
+### Serialization Performance
+- **Serialized Size**: 2.81 MB (42.9:1 compression ratio)
+- **Serialization Time**: 399.79 ms
+- **Deserialization Time**: 566.13 ms
+
+### Benchmark Notes
+
+- Benchmarks performed on standard GitHub Actions runner hardware
+- Dataset: 109,836 unique CIDR blocks from Firehol blocklist-ipsets
+- Lookup benchmark: 100,000 IP address checks
+- Memory measurements exclude Python interpreter overhead
+
+**Credits**: Benchmark data provided by [Firehol blocklist-ipsets](https://github.com/firehol/blocklist-ipsets), a collection of IP blacklists for network security.
+
+To run the benchmark yourself:
+
+```bash
+python3 benchmark.py
+```
+
 ## Architecture
 
 ### CIDARTHANode
