@@ -161,31 +161,21 @@ class CIDARTHA:
             config = get_default_config()
         self.config = config
         
-        # Set logger level if config is provided
-        if self.config is not None:
-            logger.setLevel(self.config.log_level)
+        # Set logger level
+        logger.setLevel(self.config.log_level)
         
         # Setup caches with configuration
         self._setup_caches()
     
     def _setup_caches(self):
         """Setup LRU caches with configured sizes."""
-        if self.config is not None:
-            # Wrap methods with configured cache sizes
-            self._cached_ip_network = lru_cache(maxsize=self.config.ip_network_cache_size)(
-                self._cached_ip_network_impl
-            )
-            self.check = lru_cache(maxsize=self.config.check_cache_size)(
-                self._check_impl
-            )
-        else:
-            # Use default caching for backward compatibility
-            self._cached_ip_network = lru_cache(maxsize=4096)(
-                self._cached_ip_network_impl
-            )
-            self.check = lru_cache(maxsize=4096)(
-                self._check_impl
-            )
+        # Wrap methods with configured cache sizes
+        self._cached_ip_network = lru_cache(maxsize=self.config.ip_network_cache_size)(
+            self._cached_ip_network_impl
+        )
+        self.check = lru_cache(maxsize=self.config.check_cache_size)(
+            self._check_impl
+        )
 
     def __getstate__(self):
         state = self.__dict__.copy()
@@ -253,10 +243,7 @@ class CIDARTHA:
             return
 
         # Use configurable log interval
-        if self.config is not None:
-            log_every = max(1, int(total * self.config.batch_insert_log_interval))
-        else:
-            log_every = max(1, total // 20)  # Default: 5%
+        log_every = max(1, int(total * self.config.batch_insert_log_interval))
         next_log = log_every
 
         logger.info(f"Starting batch insert of {total} entries.")
