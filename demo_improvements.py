@@ -54,7 +54,7 @@ def demo_cache_normalization():
     fw5.insert("192.168.0.0/16")
     
     # Check with string
-    fw5._check_cached.cache_clear()
+    fw5._check_bytes_cached.cache_clear()
     fw5.check(test_ip)
     fw5.check(test_ip)  # Hit
     
@@ -65,7 +65,7 @@ def demo_cache_normalization():
     ip_obj = ipaddress.IPv4Address(test_ip)
     fw5.check(ip_obj)  # HIT! Same normalized cache key
     
-    cache_info = fw5._check_cached.cache_info()
+    cache_info = fw5._check_bytes_cached.cache_info()
     print(f"  After checking same IP as string (2x), bytes (1x), and IP object (1x):")
     print(f"  Cache entries: {cache_info.currsize} (only 1!)")
     print(f"  Cache misses: {cache_info.misses} (only 1!)")
@@ -153,7 +153,7 @@ def demo_real_world_improvement():
     for cidr in cidrs:
         fw5.insert(cidr)
     
-    fw5._check_cached.cache_clear()
+    fw5._check_bytes_cached.cache_clear()
     
     # Check each IP in 3 formats
     for ip in test_ips:
@@ -161,7 +161,7 @@ def demo_real_world_improvement():
         fw5.check(ipaddress.IPv4Address(ip).packed)  # bytes
         fw5.check(ipaddress.IPv4Address(ip))  # object
     
-    cache_info_v5 = fw5._check_cached.cache_info()
+    cache_info_v5 = fw5._check_bytes_cached.cache_info()
     hit_rate_v5 = cache_info_v5.hits / (cache_info_v5.hits + cache_info_v5.misses) * 100
     print(f"  Total checks: {cache_info_v5.hits + cache_info_v5.misses}")
     print(f"  Cache hits: {cache_info_v5.hits}")

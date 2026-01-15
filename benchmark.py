@@ -111,7 +111,7 @@ def benchmark_cache_normalization():
         fw5.check(ip_bytes)
     time_v5_bytes_reuse = time.perf_counter() - start
     print(f"  Third pass (bytes):    {time_v5_bytes_reuse:.6f}s (cache hit!)")
-    print(f"  ✓  Cache stats: {fw5._check_cached.cache_info()}")
+    print(f"  ✓  Cache stats: {fw5._check_bytes_cached.cache_info()}")
     print(f"  ✓  FIXED: All input types share the same cache!")
     
     # Fourth pass: check with IP objects (should also reuse cache!)
@@ -170,7 +170,7 @@ def benchmark_configurable_cache_size():
     for ip in ips_large:
         fw5_small.check(ip)
     time_v5_small = time.perf_counter() - start
-    cache_info_v5_small = fw5_small._check_cached.cache_info()
+    cache_info_v5_small = fw5_small._check_bytes_cached.cache_info()
     print(f"  Time: {time_v5_small:.6f}s")
     print(f"  Cache: hits={cache_info_v5_small.hits}, misses={cache_info_v5_small.misses}, size={cache_info_v5_small.currsize}")
     print(f"  Hit rate: {cache_info_v5_small.hits / (cache_info_v5_small.hits + cache_info_v5_small.misses) * 100:.1f}%")
@@ -184,7 +184,7 @@ def benchmark_configurable_cache_size():
     for ip in ips_large:
         fw5_large.check(ip)
     time_v5_large = time.perf_counter() - start
-    cache_info_v5_large = fw5_large._check_cached.cache_info()
+    cache_info_v5_large = fw5_large._check_bytes_cached.cache_info()
     print(f"  Time: {time_v5_large:.6f}s")
     print(f"  Cache: hits={cache_info_v5_large.hits}, misses={cache_info_v5_large.misses}, size={cache_info_v5_large.currsize}")
     print(f"  Hit rate: {cache_info_v5_large.hits / (cache_info_v5_large.hits + cache_info_v5_large.misses) * 100:.1f}%")
@@ -268,7 +268,7 @@ def benchmark_overall_performance():
     print(f"  Lookup time: {lookup_time_v5:.6f}s")
     print(f"  Throughput:  {len(ips) / lookup_time_v5:.0f} lookups/sec")
     
-    cache_info_v5 = fw5._check_cached.cache_info()
+    cache_info_v5 = fw5._check_bytes_cached.cache_info()
     print(f"  Cache info:  hits={cache_info_v5.hits}, misses={cache_info_v5.misses}")
     
     print("\n📊 Results:")
@@ -334,7 +334,7 @@ def benchmark_mixed_input_types():
         fw5.check(ipaddress.IPv4Address(ip_str))  # objects
     time_v5_mixed = time.perf_counter() - start
     
-    cache_info_v5 = fw5._check_cached.cache_info()
+    cache_info_v5 = fw5._check_bytes_cached.cache_info()
     print(f"  Time: {time_v5_mixed:.6f}s")
     print(f"  Cache: hits={cache_info_v5.hits}, misses={cache_info_v5.misses}, size={cache_info_v5.currsize}")
     print(f"  Hit rate: {cache_info_v5.hits / (cache_info_v5.hits + cache_info_v5.misses) * 100:.1f}%")

@@ -3,7 +3,7 @@ import logging
 import socket
 from dataclasses import dataclass, field
 from ipaddress import ip_network
-from threading import Lock, RLock
+from threading import RLock
 from functools import lru_cache
 from typing import Optional, Tuple, Dict
 
@@ -20,47 +20,6 @@ logger.setLevel(logging.INFO)
 _inet_pton = socket.inet_pton
 _AF_INET = socket.AF_INET
 _AF_INET6 = socket.AF_INET6
-
-
-def _ip_to_bytes_fast(ip) -> bytes:
-    """
-    Ultra-optimized IP → bytes conversion with novel fast-path optimization.
-    
-    Key insight: Most production workloads check the SAME IPs repeatedly.
-    We can't use lru_cache here (causes double-cache overhead), but we can
-    use a simple dict for ultra-fast repeated lookups of the SAME string.
-    
-    This is thread-safe because dict reads in CPython are atomic due to GIL,
-    and even if writes race, they're writing the same value (idempotent).
-    """
-    t = type(ip)
-
-    # Ultra-fast path: bytes already normalized (instant return)
-    if t is bytes:
-        return ip
-
-    # Hot path: strings (most common in production)
-    if t is str:
-        # Fast C-level conversion (inet_pton is implemented in C)
-        try:
-            return _inet_pton(_AF_INET, ip)
-        except OSError:
-            try:
-                return _inet_pton(_AF_INET6, ip)
-            except OSError:
-                raise ValueError(f"Invalid IP: {ip}")
-
-    # Cold path: integers
-    if t is int:
-        return b"\x00" if ip == 0 else ip.to_bytes((ip.bit_length() + 7) >> 3, "big")
-
-    # Cold path: IP address objects
-    try:
-        return ip.packed
-    except AttributeError:
-        pass
-
-    raise ValueError(f"Unsupported type: {t.__name__}")
 
 
 @dataclass(slots=True)
@@ -455,7 +414,7 @@ class CIDARTHA:
         self.root.range_end = network.broadcast_address.packed
 
 
-   ###
+    ###
     # Helper methods for node manipulation
     ###
     @staticmethod
