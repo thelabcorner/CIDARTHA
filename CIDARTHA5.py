@@ -23,14 +23,12 @@ _AF_INET6 = socket.AF_INET6
 
 
 def _ip_to_bytes(ip) -> bytes:
-    """CPython-optimized IP → bytes conversion with fast path for common types."""
+    """CPython-optimized IP → bytes conversion."""
     t = type(ip)
 
-    # Fast path: bytes already normalized
     if t is bytes:
         return ip
 
-    # Hot path: string IPs (most common in production)
     if t is str:
         try:
             return _inet_pton(_AF_INET, ip)
@@ -40,11 +38,9 @@ def _ip_to_bytes(ip) -> bytes:
             except OSError:
                 raise ValueError(f"Invalid IP: {ip}")
 
-    # Integer IPs
     if t is int:
         return b"\x00" if ip == 0 else ip.to_bytes((ip.bit_length() + 7) >> 3, "big")
 
-    # IP address objects (IPv4Address, IPv6Address)
     try:
         return ip.packed
     except AttributeError:
@@ -120,16 +116,24 @@ class CIDARTHA:
         self._lock = RLock()  # Reentrant lock for thread safety
         self._cache_size = cache_size
         
-        # Create the cached check method with configurable size
+        # Dynamically create check method with configurable cache size
         if cache_size > 0:
-            self._check_cached = lru_cache(maxsize=cache_size)(self._check_impl)
+            # Create a cached version of _check_impl
+            cached_check = lru_cache(maxsize=cache_size)(self._check_impl)
+            # Store reference so we can access cache_info() and cache_clear()
+            self._check_cached = cached_check
+            self.check = cached_check
         else:
-            self._check_cached = self._check_impl
+            # No caching
+            self.check = self._check_impl
+            self._check_cached = None
 
     def __getstate__(self):
         state = self.__dict__.copy()
         del state['_lock']
-        # Don't pickle the cached function, it will be recreated
+        # Don't pickle the check method or cache, they will be recreated
+        if 'check' in state:
+            del state['check']
         if '_check_cached' in state:
             del state['_check_cached']
         return state
@@ -137,12 +141,15 @@ class CIDARTHA:
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._lock = RLock()
-        # Recreate the cached function
+        # Recreate check method with caching
         cache_size = state.get('_cache_size', 4096)
         if cache_size > 0:
-            self._check_cached = lru_cache(maxsize=cache_size)(self._check_impl)
+            cached_check = lru_cache(maxsize=cache_size)(self._check_impl)
+            self._check_cached = cached_check
+            self.check = cached_check
         else:
-            self._check_cached = self._check_impl
+            self.check = self._check_impl
+            self._check_cached = None
 
     def dump(self) -> bytes:
         """Dump trie to compact msgpack bytes."""
@@ -250,23 +257,10 @@ class CIDARTHA:
 
         mark_end(node, network)
 
-    def check(self, ip) -> bool:
-        """
-        Optimized IP lookup with normalized caching.
-        
-        All IP inputs (strings, bytes, or IP objects) are normalized to bytes
-        before caching, ensuring efficient cache utilization regardless of input format.
-        """
-        # Fast path for bytes (already normalized)
-        if type(ip) is bytes:
-            return self._check_cached(ip)
-        
-        # Normalize other input types to bytes BEFORE caching to avoid cache fragmentation
+    def _check_impl(self, ip) -> bool:
+        """Optimized IP lookup with direct dict access (used for caching)."""
         ip_bytes = _ip_to_bytes(ip)
-        return self._check_cached(ip_bytes)
 
-    def _check_impl(self, ip_bytes: bytes) -> bool:
-        """Internal implementation of IP checking (used with caching)."""
         if self.root.is_end:
             return True
 
@@ -295,8 +289,8 @@ class CIDARTHA:
 
             if network.prefixlen == 0:
                 self.root = CIDARTHANode()  # Clear directly to avoid deadlock
-                # Clear the cache when removing a wildcard CIDR
-                if hasattr(self._check_cached, 'cache_clear'):
+                # Clear cache when removing wildcard
+                if self._check_cached and hasattr(self._check_cached, 'cache_clear'):
                     self._check_cached.cache_clear()
                 return
 
@@ -316,16 +310,16 @@ class CIDARTHA:
             self._remove_end_node(node)
             self._prune_empty_nodes(path)
             
-            # Clear the cache after removing a CIDR to ensure fresh lookups
-            if hasattr(self._check_cached, 'cache_clear'):
+            # Clear cache after removal
+            if self._check_cached and hasattr(self._check_cached, 'cache_clear'):
                 self._check_cached.cache_clear()
 
     def clear(self):
         """Thread-safe clear."""
         with self._lock:
             self.root = CIDARTHANode()
-            # Clear the cache when clearing the trie
-            if hasattr(self._check_cached, 'cache_clear'):
+            # Clear the cache after clearing the trie
+            if self._check_cached and hasattr(self._check_cached, 'cache_clear'):
                 self._check_cached.cache_clear()
 
     def _traverse_path(self, address_bytes, prefix_len=None):
