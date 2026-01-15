@@ -295,6 +295,9 @@ class CIDARTHA:
 
             if network.prefixlen == 0:
                 self.root = CIDARTHANode()  # Clear directly to avoid deadlock
+                # Clear the cache when removing a wildcard CIDR
+                if hasattr(self._check_cached, 'cache_clear'):
+                    self._check_cached.cache_clear()
                 return
 
             path = self._traverse_path(network.network_address.packed, network.prefixlen)
@@ -312,6 +315,10 @@ class CIDARTHA:
 
             self._remove_end_node(node)
             self._prune_empty_nodes(path)
+            
+            # Clear the cache after removing a CIDR to ensure fresh lookups
+            if hasattr(self._check_cached, 'cache_clear'):
+                self._check_cached.cache_clear()
 
     def clear(self):
         """Thread-safe clear."""
