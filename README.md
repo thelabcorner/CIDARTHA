@@ -297,29 +297,34 @@ firewall = CIDARTHA.load(data)
 ### Optimizations
 
 1. **C-Level Socket Conversions**: Direct use of `socket.inet_pton()` for fast IP parsing
-2. **LRU Caching**: 4096-entry cache for frequently checked IPs
+2. **Dual-Layer LRU Caching**: 
+   - 4096-entry cache for frequently checked IPs (check results)
+   - 8192-entry cache for IP string to bytes conversion
 3. **Pre-computed Bit Masks**: Eliminates runtime calculations
 4. **Lazy Children Allocation**: Nodes only allocate child dictionaries when needed
 5. **Direct Dictionary Access**: Bypasses method overhead in hot paths
+6. **Batch Operation Optimization**: Cache cleared once per batch instead of per operation
+7. **Local Variable Caching**: Hot-path attribute lookups reduced via local references
 
 ## Benchmarks
 
 Real-world performance benchmarks using [Firehol blocklist-ipsets](https://github.com/firehol/blocklist-ipsets) data (277,166 CIDR blocks from firehol_level1, firehol_level2, firehol_level3, firehol_level4, firehol_webserver, and firehol_abusers_30d):
 
 ### Insertion Performance
-- **Insertion Rate**: 68.99 K entries/second
-- **Average Time per Insert**: 14.50 μs
-- **Memory Usage**: 98.62 MB (0.36 KB per entry)
+- **Insertion Rate**: 68.85 K entries/second
+- **Average Time per Insert**: 14.52 μs
+- **Memory Usage**: 98.38 MB (0.36 KB per entry)
 
 ### Lookup Performance
-- **Lookup Rate**: 812.77 K lookups/second
-- **Average Time per Lookup**: 1.23 μs
-- **Cache Hit Rate**: 100% (with LRU caching)
+- **Lookup Rate**: 675.89 K lookups/second (cold cache)
+- **Lookup Rate**: 9.56 M lookups/second (warm cache)
+- **Average Time per Lookup**: 1.48 μs (cold), 0.10 μs (warm)
+- **Cache Hit Rate**: Up to 100% (with dual-layer LRU caching)
 
 ### Serialization Performance
-- **Serialized Size**: 6.04 MB (45.9:1 compression ratio)
-- **Serialization Time**: 958.03 ms
-- **Deserialization Time**: 1.28 s
+- **Serialized Size**: 6.04 MB (16.3 MB → 6.04 MB, 2.7:1 compression)
+- **Serialization Time**: 960.01 ms
+- **Deserialization Time**: 1.27 s
 
 ### Benchmark Notes
 
@@ -327,6 +332,7 @@ Real-world performance benchmarks using [Firehol blocklist-ipsets](https://githu
 - Dataset: 277,166 unique CIDR blocks from Firehol blocklist-ipsets
 - Lookup benchmark: 100,000 IP address checks
 - Memory measurements exclude Python interpreter overhead
+- Warm cache performance can exceed 9.5M lookups/sec with repeated queries
 
 **Credits**: Benchmark data provided by [Firehol blocklist-ipsets](https://github.com/firehol/blocklist-ipsets), a collection of IP blacklists for network security.
 
