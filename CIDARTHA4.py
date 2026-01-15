@@ -156,42 +156,81 @@ class CIDARTHA:
         self.root = CIDARTHANode()
         self._lock = RLock()  # Reentrant lock for thread safety
         
-        # Get configuration
+        # Always set config, but only do extra work if it's custom
         if config is None:
-            config = get_default_config()
-        self.config = config
-        
-        # Set logger level
-        logger.setLevel(self.config.log_level)
-        
-        # Setup caches with configuration
-        self._setup_caches()
+            # Use global default config (respects set_default_config changes)
+            self.config = get_default_config()
+        else:
+            # Custom config path: set logger and create custom caches
+            self.config = config
+            logger.setLevel(config.log_level)
+            # Create custom cache wrappers with configured sizes
+            self._cached_ip_network = lru_cache(maxsize=config.ip_network_cache_size)(
+                self._cached_ip_network_impl
+            )
+            self.check = lru_cache(maxsize=config.check_cache_size)(
+                self._check_impl
+            )
     
-    def _setup_caches(self):
-        """Setup LRU caches with configured sizes."""
-        # Wrap methods with configured cache sizes
-        self._cached_ip_network = lru_cache(maxsize=self.config.ip_network_cache_size)(
-            self._cached_ip_network_impl
-        )
-        self.check = lru_cache(maxsize=self.config.check_cache_size)(
-            self._check_impl
-        )
+    # Default cached methods with standard sizes (used when config is None)
+    @lru_cache(maxsize=4096)
+    def _cached_ip_network(self, input_data: str):
+        """Cache ip_network calls."""
+        return ip_network(input_data, strict=False)
+    
+    @lru_cache(maxsize=4096)
+    def check(self, ip) -> bool:
+        """Optimized IP lookup with direct dict access."""
+        return self._check_impl(ip)
+    
+    def _cached_ip_network_impl(self, input_data: str):
+        """Cache ip_network calls (implementation)."""
+        return ip_network(input_data, strict=False)
+    
+    def _check_impl(self, ip) -> bool:
+        """Optimized IP lookup with direct dict access (implementation)."""
+        ip_bytes = _ip_to_bytes(ip)
+        
+        root = self.root
+        if root.is_end:
+            return True
+        
+        node = root
+        for byte in ip_bytes:
+            children = node._children
+            if children is None:
+                return False
+            
+            node = children.get(byte)
+            if node is None:
+                return False
+            if node.is_end:
+                return True
+        
+        return False
 
     def __getstate__(self):
         state = self.__dict__.copy()
         del state['_lock']
-        # Remove cached methods which can't be pickled
-        if 'check' in state:
-            del state['check']
-        if '_cached_ip_network' in state:
-            del state['_cached_ip_network']
+        # Only remove cached methods if they were customized (config is not None)
+        if self.config is not None:
+            if 'check' in state:
+                del state['check']
+            if '_cached_ip_network' in state:
+                del state['_cached_ip_network']
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._lock = RLock()
-        # Recreate cached methods using helper
-        self._setup_caches()
+        # Recreate customized cached methods if config was used
+        if self.config is not None:
+            self._cached_ip_network = lru_cache(maxsize=self.config.ip_network_cache_size)(
+                self._cached_ip_network_impl
+            )
+            self.check = lru_cache(maxsize=self.config.check_cache_size)(
+                self._check_impl
+            )
 
     def dump(self) -> bytes:
         """Dump trie to compact msgpack bytes."""
@@ -217,10 +256,6 @@ class CIDARTHA:
         logger.info("Deserialization complete.")
         return cidartha
 
-    def _cached_ip_network_impl(self, input_data: str):
-        """Cache ip_network calls (implementation)."""
-        return ip_network(input_data, strict=False)
-
     def insert(self, input_data: str, _clear_cache=True):
         """Thread-safe CIDR insertion."""
         with self._lock:
@@ -242,8 +277,11 @@ class CIDARTHA:
             logger.info("No entries to insert.")
             return
 
-        # Use configurable log interval
-        log_every = max(1, int(total * self.config.batch_insert_log_interval))
+        # Use configurable log interval (default 5% if no config)
+        if self.config is not None:
+            log_every = max(1, int(total * self.config.batch_insert_log_interval))
+        else:
+            log_every = max(1, total // 20)  # Default: 5%
         next_log = log_every
 
         logger.info(f"Starting batch insert of {total} entries.")
@@ -327,28 +365,6 @@ class CIDARTHA:
         else:
             # Full byte prefix - mark this node as end
             mark_end(node, network)
-
-    def _check_impl(self, ip) -> bool:
-        """Optimized IP lookup with direct dict access (implementation)."""
-        ip_bytes = _ip_to_bytes(ip)
-        
-        root = self.root
-        if root.is_end:
-            return True
-        
-        node = root
-        for byte in ip_bytes:
-            children = node._children
-            if children is None:
-                return False
-            
-            node = children.get(byte)
-            if node is None:
-                return False
-            if node.is_end:
-                return True
-        
-        return False
 
     def remove(self, cidr: str):
         """Thread-safe CIDR removal."""
