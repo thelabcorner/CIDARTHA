@@ -9,6 +9,13 @@ from typing import Optional, Tuple, Dict
 
 import msgpack
 
+try:
+    from config import CIDARTHAConfig, get_default_config
+except ImportError:
+    # Fallback if config module is not available
+    CIDARTHAConfig = None
+    get_default_config = None
+
 # Predefine bit masks
 MASKS = [(0xFF << (8 - i)) & 0xFF for i in range(1, 9)]
 
@@ -22,9 +29,8 @@ _AF_INET = socket.AF_INET
 _AF_INET6 = socket.AF_INET6
 
 
-@lru_cache(maxsize=8192)
-def _ip_to_bytes_cached(ip: str) -> bytes:
-    """Cached IP string to bytes conversion."""
+def _ip_to_bytes_cached_impl(ip: str) -> bytes:
+    """Cached IP string to bytes conversion (implementation)."""
     try:
         return _inet_pton(_AF_INET, ip)
     except OSError:
@@ -32,6 +38,33 @@ def _ip_to_bytes_cached(ip: str) -> bytes:
             return _inet_pton(_AF_INET6, ip)
         except OSError:
             raise ValueError(f"Invalid IP: {ip}")
+
+
+# Default global cache with standard size
+_ip_to_bytes_cached = lru_cache(maxsize=8192)(_ip_to_bytes_cached_impl)
+
+
+def configure_global_ip_cache(cache_size: int = 8192):
+    """
+    Configure the global IP to bytes cache size.
+    
+    This function allows users to adjust the size of the global LRU cache used
+    for IP string to bytes conversion. This cache is shared across all CIDARTHA
+    instances.
+    
+    Args:
+        cache_size: Maximum number of IP addresses to cache (default: 8192)
+    
+    Example:
+        >>> from CIDARTHA4 import configure_global_ip_cache
+        >>> configure_global_ip_cache(16384)  # Double the cache size
+    
+    Note:
+        This should be called before creating CIDARTHA instances for best effect.
+        Calling this will clear any existing cached values.
+    """
+    global _ip_to_bytes_cached
+    _ip_to_bytes_cached = lru_cache(maxsize=cache_size)(_ip_to_bytes_cached_impl)
 
 
 def _ip_to_bytes(ip) -> bytes:
@@ -109,18 +142,82 @@ class CIDARTHANode:
 
 
 class CIDARTHA:
-    def __init__(self):
+    def __init__(self, config=None):
+        """
+        Initialize CIDARTHA with optional configuration.
+        
+        Args:
+            config: Optional CIDARTHAConfig instance for customizing behavior.
+                   If None, uses the global default configuration.
+        
+        Examples:
+            >>> # Use default configuration
+            >>> fw = CIDARTHA()
+            
+            >>> # Use custom configuration
+            >>> from config import CIDARTHAConfig
+            >>> config = CIDARTHAConfig(check_cache_size=8192)
+            >>> fw = CIDARTHA(config=config)
+        """
         self.root = CIDARTHANode()
         self._lock = RLock()  # Reentrant lock for thread safety
+        
+        # Get configuration
+        if config is None and get_default_config is not None:
+            config = get_default_config()
+        self.config = config
+        
+        # Set logger level if config is provided
+        if self.config is not None:
+            logger.setLevel(self.config.log_level)
+        
+        # Create configured cache wrappers
+        if self.config is not None:
+            # Wrap methods with configured cache sizes
+            self._cached_ip_network = lru_cache(maxsize=self.config.ip_network_cache_size)(
+                self._cached_ip_network_impl
+            )
+            self.check = lru_cache(maxsize=self.config.check_cache_size)(
+                self._check_impl
+            )
+        else:
+            # Use default caching for backward compatibility
+            self._cached_ip_network = lru_cache(maxsize=4096)(
+                self._cached_ip_network_impl
+            )
+            self.check = lru_cache(maxsize=4096)(
+                self._check_impl
+            )
 
     def __getstate__(self):
         state = self.__dict__.copy()
         del state['_lock']
+        # Remove cached methods which can't be pickled
+        if 'check' in state:
+            del state['check']
+        if '_cached_ip_network' in state:
+            del state['_cached_ip_network']
         return state
 
     def __setstate__(self, state):
         self.__dict__.update(state)
         self._lock = RLock()
+        # Recreate cached methods
+        config = state.get('config')
+        if config is not None:
+            self._cached_ip_network = lru_cache(maxsize=config.ip_network_cache_size)(
+                self._cached_ip_network_impl
+            )
+            self.check = lru_cache(maxsize=config.check_cache_size)(
+                self._check_impl
+            )
+        else:
+            self._cached_ip_network = lru_cache(maxsize=4096)(
+                self._cached_ip_network_impl
+            )
+            self.check = lru_cache(maxsize=4096)(
+                self._check_impl
+            )
 
     def dump(self) -> bytes:
         """Dump trie to compact msgpack bytes."""
@@ -131,18 +228,23 @@ class CIDARTHA:
         return msgpack.packb(flat_data, use_bin_type=True)
 
     @staticmethod
-    def load(serialized_data: bytes) -> "CIDARTHA":
-        """Load trie from msgpack bytes."""
+    def load(serialized_data: bytes, config=None) -> "CIDARTHA":
+        """
+        Load trie from msgpack bytes.
+        
+        Args:
+            serialized_data: Serialized trie data
+            config: Optional CIDARTHAConfig instance for the loaded instance
+        """
         logger.info("Starting deserialization.")
         flat_data = msgpack.unpackb(serialized_data, raw=False, strict_map_key=False)
-        cidartha = CIDARTHA()
+        cidartha = CIDARTHA(config=config)
         cidartha.root = CIDARTHANode.from_compact_tuple(flat_data['root'])
         logger.info("Deserialization complete.")
         return cidartha
 
-    @lru_cache(maxsize=4096)
-    def _cached_ip_network(self, input_data: str):
-        """Cache ip_network calls."""
+    def _cached_ip_network_impl(self, input_data: str):
+        """Cache ip_network calls (implementation)."""
         return ip_network(input_data, strict=False)
 
     def insert(self, input_data: str, _clear_cache=True):
@@ -166,7 +268,11 @@ class CIDARTHA:
             logger.info("No entries to insert.")
             return
 
-        log_every = max(1, total // 20)
+        # Use configurable log interval
+        if self.config is not None:
+            log_every = max(1, int(total * self.config.batch_insert_log_interval))
+        else:
+            log_every = max(1, total // 20)  # Default: 5%
         next_log = log_every
 
         logger.info(f"Starting batch insert of {total} entries.")
@@ -251,9 +357,8 @@ class CIDARTHA:
             # Full byte prefix - mark this node as end
             mark_end(node, network)
 
-    @lru_cache(maxsize=4096)
-    def check(self, ip) -> bool:
-        """Optimized IP lookup with direct dict access."""
+    def _check_impl(self, ip) -> bool:
+        """Optimized IP lookup with direct dict access (implementation)."""
         ip_bytes = _ip_to_bytes(ip)
         
         root = self.root
