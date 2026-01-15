@@ -3,6 +3,8 @@
 Speed comparison test for optimizations.
 """
 
+import psutil
+import os
 from CIDARTHA4 import CIDARTHA
 import time
 
@@ -87,9 +89,6 @@ def benchmark_insert_optimizations():
 
 def benchmark_memory_efficiency():
     """Test memory efficiency."""
-    import psutil
-    import os
-    
     print("\n" + "=" * 60)
     print("MEMORY EFFICIENCY TEST")
     print("=" * 60)

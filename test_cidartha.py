@@ -10,7 +10,13 @@ import ipaddress
 
 
 class TestCIDARTHABasicOperations(unittest.TestCase):
-    """Test basic insert, check, and remove operations."""
+    """
+    Test basic insert, check, and remove operations.
+    
+    Tests fundamental CIDARTHA operations including IPv4/IPv6 insertion,
+    lookups, removal, clearing, and wildcard matching to ensure core
+    functionality works correctly.
+    """
     
     def setUp(self):
         """Create a fresh CIDARTHA instance for each test."""

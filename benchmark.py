@@ -11,14 +11,18 @@ import ipaddress
 import psutil
 from CIDARTHA4 import CIDARTHA
 
+# Firehol repository configuration
+FIREHOL_REPO_BRANCH = "master"
+FIREHOL_BASE_URL = f"https://github.com/firehol/blocklist-ipsets/raw/refs/heads/{FIREHOL_REPO_BRANCH}"
+
 # Firehol blocklist URLs
 FIREHOL_URLS = [
-    "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_level1.netset",
-    "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_level2.netset",
-    "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_level3.netset",
-    "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_level4.netset",
-    "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_webserver.netset",
-    "https://github.com/firehol/blocklist-ipsets/raw/refs/heads/master/firehol_abusers_30d.netset",
+    f"{FIREHOL_BASE_URL}/firehol_level1.netset",
+    f"{FIREHOL_BASE_URL}/firehol_level2.netset",
+    f"{FIREHOL_BASE_URL}/firehol_level3.netset",
+    f"{FIREHOL_BASE_URL}/firehol_level4.netset",
+    f"{FIREHOL_BASE_URL}/firehol_webserver.netset",
+    f"{FIREHOL_BASE_URL}/firehol_abusers_30d.netset",
 ]
 
 
