@@ -22,6 +22,18 @@ _AF_INET = socket.AF_INET
 _AF_INET6 = socket.AF_INET6
 
 
+@lru_cache(maxsize=8192)
+def _ip_to_bytes_cached(ip: str) -> bytes:
+    """Cached IP string to bytes conversion."""
+    try:
+        return _inet_pton(_AF_INET, ip)
+    except OSError:
+        try:
+            return _inet_pton(_AF_INET6, ip)
+        except OSError:
+            raise ValueError(f"Invalid IP: {ip}")
+
+
 def _ip_to_bytes(ip) -> bytes:
     """CPython-optimized IP → bytes conversion."""
     t = type(ip)
@@ -30,13 +42,7 @@ def _ip_to_bytes(ip) -> bytes:
         return ip
 
     if t is str:
-        try:
-            return _inet_pton(_AF_INET, ip)
-        except OSError:
-            try:
-                return _inet_pton(_AF_INET6, ip)
-            except OSError:
-                raise ValueError(f"Invalid IP: {ip}")
+        return _ip_to_bytes_cached(ip)
 
     if t is int:
         return b"\x00" if ip == 0 else ip.to_bytes((ip.bit_length() + 7) >> 3, "big")
@@ -139,18 +145,22 @@ class CIDARTHA:
         """Cache ip_network calls."""
         return ip_network(input_data, strict=False)
 
-    def insert(self, input_data: str):
+    def insert(self, input_data: str, _clear_cache=True):
         """Thread-safe CIDR insertion."""
         with self._lock:
             try:
                 network = self._cached_ip_network(input_data)
                 self._insert_cidr(network)
+                # Clear cache after modification (can be disabled for batch operations)
+                if _clear_cache:
+                    self.check.cache_clear()
+                    _ip_to_bytes_cached.cache_clear()
             except ValueError as e:
                 logger.error(f"Invalid IP or CIDR range: {input_data} - {e}")
                 raise
 
     def batch_insert(self, entries):
-        """Batch insert with optimized logging."""
+        """Batch insert with optimized logging and cache handling."""
         total = len(entries)
         if not total:
             logger.info("No entries to insert.")
@@ -160,16 +170,24 @@ class CIDARTHA:
         next_log = log_every
 
         logger.info(f"Starting batch insert of {total} entries.")
-        for i, entry in enumerate(entries, 1):
-            if entry := entry.strip():
-                try:
-                    self.insert(entry)
-                    if i == next_log or i == total:
-                        logger.info(f"Inserted {i}/{total} ({100 * i / total:.1f}%)")
-                        next_log += log_every
-                except ValueError as e:
-                    logger.error(f"Failed to insert {entry}: {e}")
-
+        
+        # Process entries in batch with lock held for better performance
+        with self._lock:
+            for i, entry in enumerate(entries, 1):
+                if entry := entry.strip():
+                    try:
+                        network = self._cached_ip_network(entry)
+                        self._insert_cidr(network)
+                        if i == next_log or i == total:
+                            logger.info(f"Inserted {i}/{total} ({100 * i / total:.1f}%)")
+                            next_log += log_every
+                    except ValueError as e:
+                        logger.error(f"Failed to insert {entry}: {e}")
+            
+            # Clear caches once after all inserts
+            self.check.cache_clear()
+            _ip_to_bytes_cached.cache_clear()
+        
         logger.info("Batch insert complete.")
 
     def _insert_cidr(self, network):
@@ -207,40 +225,53 @@ class CIDARTHA:
 
         # Handle partial byte
         if rem_bits:
-            b = addr[full_bytes] & masks[rem_bits - 1]
+            # Calculate the range of byte values that match this prefix
+            base_byte = addr[full_bytes] & masks[rem_bits - 1]
+            # Number of bits that are variable in this byte
+            variable_bits = 8 - rem_bits
+            # Number of different values possible
+            num_values = 1 << variable_bits
+            
+            # Pre-allocate children dict if needed for efficiency
+            if node._children is None:
+                node._children = {}
             children = node._children
-            if children is None:
-                nxt = NodeCtor()
-                node[b] = nxt
-            else:
+            
+            # Create nodes for all byte values in the range
+            for offset in range(num_values):
+                b = base_byte | offset
                 nxt = children.get(b)
                 if nxt is None:
                     nxt = NodeCtor()
                     children[b] = nxt
-            node = nxt
-
-        mark_end(node, network)
+                
+                # Mark this node as end
+                mark_end(nxt, network)
+        else:
+            # Full byte prefix - mark this node as end
+            mark_end(node, network)
 
     @lru_cache(maxsize=4096)
     def check(self, ip) -> bool:
         """Optimized IP lookup with direct dict access."""
         ip_bytes = _ip_to_bytes(ip)
-
-        if self.root.is_end:
+        
+        root = self.root
+        if root.is_end:
             return True
-
-        node = self.root
+        
+        node = root
         for byte in ip_bytes:
             children = node._children
             if children is None:
                 return False
-
+            
             node = children.get(byte)
             if node is None:
                 return False
             if node.is_end:
                 return True
-
+        
         return False
 
     def remove(self, cidr: str):
@@ -254,6 +285,9 @@ class CIDARTHA:
 
             if network.prefixlen == 0:
                 self.root = CIDARTHANode()  # Clear directly to avoid deadlock
+                # Clear caches after modification
+                self.check.cache_clear()
+                _ip_to_bytes_cached.cache_clear()
                 return
 
             path = self._traverse_path(network.network_address.packed, network.prefixlen)
@@ -271,11 +305,17 @@ class CIDARTHA:
 
             self._remove_end_node(node)
             self._prune_empty_nodes(path)
+            # Clear caches after modification
+            self.check.cache_clear()
+            _ip_to_bytes_cached.cache_clear()
 
     def clear(self):
         """Thread-safe clear."""
         with self._lock:
             self.root = CIDARTHANode()
+            # Clear caches after modification
+            self.check.cache_clear()
+            _ip_to_bytes_cached.cache_clear()
 
     def _traverse_path(self, address_bytes, prefix_len=None):
         """Return list of (parent_node, byte_to_child) for traversal path."""
